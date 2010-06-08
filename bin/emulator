@@ -1,0 +1,57 @@
+#!/bin/bash
+#####################################################################
+# Script for sending and executing aplication in Cinterion modules. #
+#########################################################################################
+# Help improving this script, and DON'T FORGET TO SEND ME YOUR IMPROVMENTS! THANK YOU! #
+########################################################################################
+# Written by Ricardo Guilherme Schmidt (3esmit@gmail.com)
+#########################################################################################
+# changed from opexftp to JObexFTP, changed to emulator script by Florian Chis
+# debug not supported yet
+#########################################################################################
+# JObexFTP support for format, delete ops by Radu Petrisor (radu.petrinsor@safefleet.eu)
+# JObexFTP support for startup op and other fixes by Florian Chis (florian.chis@scada.ro)
+#########################################################################################
+
+#change here if using serial port (ttyS) or usb adaptors (ttyUSB) or other paths (ex: ttyACM)
+ttypath=`ls /dev/ttyUSB? | tail -n 1`
+
+for param in $* ; do
+
+    arg="${param#*:}"
+    par="${param%:*}"
+    
+    #echo $param $par $arg
+    case "$par" in
+        -Xdomain) domain="$arg" ; shift;;
+        -Xdevice) device="$arg" ; shift;;
+        -Xdescriptor) jadpath="$arg" ; shift;;
+    esac
+done
+
+currentdir=`dirname $(readlink -f $0)`
+jadfile=`basename $jadpath`
+folderpath=`dirname $jadpath`
+projectname=${jadfile%%[.]*}
+jarfile="$projectname.jar"
+jarpath=$folderpath"/"$jarfile
+
+if [[ $ttypath != "" ]]; then
+	echo "### ### ###"
+	echo "## Device: $device at $ttypath "
+	echo "## SecDom: $domain " 
+	echo "## Folder: $folderpath "
+	echo "## JAD: $jadfile " 
+	echo "## JAR: $jarfile "
+	echo "### ### ###"
+	echo "# Killing any process may be using $ttypath :"
+	echo "# `fuser -k $ttypath`"
+	echo "# Sending files with `java -jar ${currentdir}/jObexFTP.jar -v`:"
+	java -jar ${currentdir}/jObexFTP.jar $ttypath -u $folderpath/$jadfile $folderpath/$jarfile -V -R a:/$jarfile
+	sleep 0.5
+	echo "# Opening GTKTerm"
+	`gtkterm -p $ttypath -s 115200 ` &
+else
+	echo "## Device not found "
+fi
+

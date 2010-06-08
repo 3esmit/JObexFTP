@@ -1,8 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
-
 package com.lhf.obex;
 
 import com.lhf.obex.dao.OBEXFile;
@@ -11,7 +6,7 @@ import com.lhf.obex.dao.OBEXFile;
  *
  * @author Ricardo Guilherme Schmidt
  */
-interface OBEXInterface {
+public interface OBEXInterface {
     /** Default connection header to send */
     static final byte[] OBEX_CONNECT = {(byte) 0x80, (byte) 00, (byte) 0x1a, (byte) 0x10, (byte) 00, (byte) 0x40, 6, (byte) 0x46, (byte) 00, (byte) 0x13, (byte) 0x6B, 1, (byte) 0xCB, (byte) 0x31, (byte) 0x41, 6, (byte) 0x11, (byte) 0xD4, (byte) 0x9A, (byte) 0x77, 0, (byte) 0x50, (byte) 0xDA, (byte) 0x3F, (byte) 0x47, (byte) 0x1f};
     /** Setpath backyards hex "byte" */
@@ -37,6 +32,11 @@ interface OBEXInterface {
     static final int PUT_SEND = 2;
     /** a put send next blocks operation */
     static final int PUT_SEND_MORE = 3;
+    /** a put format operation*/
+    static final int PUT_FORMAT = 4;
+
+    /**Format filesystem hex sequence*/
+    static final byte[] FORMAT = {(byte)0x82, (byte) 0x00, (byte) 0x08, (byte) 0x4c, (byte) 0x00, (byte) 0x05, (byte) 0x31, (byte) 0x00};
 
     /** no flow control */
     static final int FLOW_NONE = 0;
@@ -53,7 +53,7 @@ interface OBEXInterface {
      * @return array of integers with the obex response
      * @throws OBEXException if operation was not successful
      */
-    int[] setPath(String path, boolean backwards, boolean create) throws OBEXException;
+    byte[] setPath(String path, boolean backwards, boolean create) throws OBEXException;
     /**
      * function for obex get operations
      * @param what you want to get
@@ -74,17 +74,23 @@ interface OBEXInterface {
      * @return the obex response
      * @throws OBEXException if operation was not successful
      */
-    int[] abort() throws OBEXException;
+    byte[] abort() throws OBEXException;
+    /**
+     * function to format the flash filesystem
+     * @return true if the format was successful
+     * @throws OBEXException if the operation was not successful
+     */
+    boolean format() throws OBEXException;
     /**
      * function to open a obex connection
      * @return true if connection was successful
      * @throws OBEXException if operation was not successful
      */
-    boolean connect() throws OBEXException;
+    boolean enterOBEXMode() throws OBEXException;
     /**
-     * function to disconnect from obex server
+     * function to leaveOBEXMode from obex server
      * @return true if disconnection was accepted
      * @throws OBEXException if operation was not successful
      */
-    boolean disconnect() throws OBEXException;
+    boolean leaveOBEXMode() throws OBEXException;
 }

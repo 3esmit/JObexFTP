@@ -1,0 +1,33 @@
+
+    About Project
+    -------------
+
+    What is JObexFTP?
+    JObexFTP is a Java implementation of Obex Client protocol under Siemiens/Cinterion AT specification aimed to work with TC65 and TC65i modules. 
+    Its a fully opensource library (and application) to transfer files from/to obex server.
+    You can use it in any J2SE application to enable java communication to module without third party app. You can also use it as a MES in unsupported cinterion plataforms like Linux.
+    It can be easily adapted to similar devices.
+
+    Dependences
+    -----------
+    This software uses, obviously Java, and RxTx library. 
+    RxTx is a native library that helps Serial (and Parallel) communication under Java. 
+    Its freely avaliable in http://rxtx.qbang.org/ it also has a debian package that dosent works in modern linux but there is a project to fix that here http://github.com/chrisdew/rxtx
+
+
+
+
+    Copyright (C) 2010  Ricardo Guilherme Schmidt
+
+    This program is free software: you can redistribute it and/or modify
+    it under the terms of the GNU General Public License as published by
+    the Free Software Foundation, either version 3 of the License, or
+    any later version.
+
+    This program is distributed in the hope that it will be useful,
+    but WITHOUT ANY WARRANTY; without even the implied warranty of
+    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+    GNU General Public License for more details.
+
+    You should have received a copy of the GNU General Public License
+    along with this program.  If not, see <http://www.gnu.org/licenses/>.

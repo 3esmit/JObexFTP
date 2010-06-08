@@ -1,7 +1,3 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.lhf.obex.dao;
 
 import java.io.IOException;
@@ -68,11 +64,6 @@ public class OBEXFile extends OBEXObject {
      */
     public int available() throws IOException {
         return is.available();
-//        if (fileStream != null) {
-//            return fileStream.available();
-//        } else {
-//            return byteis.available();
-//        }
     }
 
     /**
@@ -81,11 +72,7 @@ public class OBEXFile extends OBEXObject {
      * @throws IOException if an I/O error occurs.
      */
     public int read() throws IOException {
-//        if (fileStream != null) {
         return is.read();
-//        } else {
-//            return byteis.read();
-//        }
     }
 
     /**
@@ -95,11 +82,7 @@ public class OBEXFile extends OBEXObject {
      * @throws IOException if an I/O error occurs
      */
     public int read(byte[] b) throws IOException {
-//        if (fileStream != null) {
         return is.read(b);
-//        } else {
-//            return byteis.read(b);
-//        }
     }
 
     /**
@@ -111,11 +94,7 @@ public class OBEXFile extends OBEXObject {
      * @throws IOException if an I/O error occurs
      */
     public int read(byte[] b, int off, int len) throws IOException {
-//        if (fileStream != null) {
         return is.read(b, off, len);
-//        } else {
-//            return byteis.read(b, off, len);
-//        }
     }
 
     /**
@@ -125,11 +104,7 @@ public class OBEXFile extends OBEXObject {
      * @throws IOException  if n is negative, if the stream does not support seek, or if an I/O error occurs.
      */
     public long skip(long n) throws IOException {
-//        if (fileStream != null) {
         return is.skip(n);
-//        } else {
-//            return byteis.skip(n);
-//        }
     }
 
     /**
@@ -137,11 +112,7 @@ public class OBEXFile extends OBEXObject {
      * @throws IOException  if an I/O error occurs.
      */
     public void close() throws IOException {
-//        if (fileStream != null) {
         is.close();
-//        } else {
-//            byteis.close();
-//        }
     }
 
     /**

@@ -1,8 +1,3 @@
-
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.lhf.obexftp;
 
 import java.io.FileInputStream;
@@ -15,24 +10,26 @@ import java.util.logging.Logger;
 import com.lhf.obex.OBEXProtocol;
 import com.lhf.obex.OBEXException;
 import com.lhf.obex.dao.OBEXFile;
-import com.lhf.obex.dao.OBEXObject;
 
 /**
- *
- * @author Ricardo Guilherme Schmidt
+ * Obex FTP client
+ * @author Ricardo Guilherme Schmidt, Radu Petrișor
  */
 public class JObexFTP {
 
-    public static final String version = "0.12 beta";
+    public static final String version = "0.15 build 070610";
     private Vector<String> listPaths;
     private Vector<String> downloadPaths;
     private Vector<String> removePaths;
     private Vector<String> uploadPaths;
+    private Vector<String> createPaths;
     private String moveTo = null;
+    private String runJarPath = "";
     private boolean download = true;
     public static boolean verbose = false;
     public static boolean autorun = false;
     public static boolean veratcmd = false;
+    public static boolean format = false;
     public static int autoon = 2;
     private OBEXProtocol obexComm;
 
@@ -44,7 +41,7 @@ public class JObexFTP {
         if (!args[0].startsWith("-")) {
             try {
                 obexComm = new OBEXProtocol(args[0], true);
-                obexComm.connect();
+                obexComm.enterOBEXMode();
             } catch (OBEXException ex) {
                 System.exit(0);
             }
@@ -58,6 +55,8 @@ public class JObexFTP {
                 for (int j = i + 1; j < args.length && !args[j].startsWith("-"); j++) {
                     downloadPaths.add(args[j]);
                 }
+            } else if (string.startsWith("-f")) {
+                format = true;
             } else if (string.startsWith("-r")) {
                 if (removePaths == null) {
                     removePaths = new Vector<String>();
@@ -79,10 +78,28 @@ public class JObexFTP {
                 for (int j = i + 1; j < args.length && !args[j].startsWith("-"); j++) {
                     uploadPaths.add(args[j]);
                 }
-            } else if (string.startsWith("-V")) {
-                if (obexComm != null) {
-                    obexComm.setVerbose(true);
+            }else if (string.startsWith("-c")) {
+                if (createPaths == null) {
+                    createPaths = new Vector<String>();
                 }
+                for (int j = i + 1; j < args.length && !args[j].startsWith("-"); j++) {
+                    createPaths.add(args[j]);
+                }
+            }else if (string.startsWith("-o")) {
+                if(args.length > i+1){
+                    String[] params = args[i+1].split(":");
+                    try{
+                        obexComm = new OBEXProtocol(params[0],Integer.parseInt(params[1]),true);
+                        obexComm.enterOBEXMode();
+                    }catch(Exception ex){
+                        System.out.println("Exception: "+ex);
+                        ex.printStackTrace();
+                        System.exit(0);
+                    }
+                }
+            } else if (string.startsWith("-V")) {
+                verbose = true;
+                
             } else if (string.startsWith("-M")) {
                 int j = i + 1;
                 if (j < args.length && !args[j].startsWith("-")) {
@@ -96,7 +113,13 @@ public class JObexFTP {
                     obexComm.setVeratcmd(true);
                 }
             } else if (string.startsWith("-R")) {
-                autorun = true; //TODO: this
+                int j = i + 1;
+                if (j < args.length && !args[j].startsWith("-")) {
+                    runJarPath = args[i+1];
+                    autorun = true;
+                } else {
+                    System.out.println("Missing jar file path to run");
+                }
             } else if (string.startsWith("-S")) {
                 download = false;
             } else if (string.startsWith("-T")) {
@@ -138,12 +161,37 @@ public class JObexFTP {
                 }
             }
         }
-
+        if (verbose) {
+            if (obexComm != null) {
+                    obexComm.setVerbose(true);
+            }
+        }
+        if (format){
+            if (obexComm != null)
+                try{
+                    if (obexComm.format()){
+                        System.out.println("Format successful");
+                    }else
+                        System.out.println("Format failed");
+                }catch(OBEXException ex){
+                    System.out.println("Format failed: "+ex.getMessage());
+                }
+        }
         if (removePaths != null) {
             if (removePaths.size() > 0) {
                 for (int i = 0; i < removePaths.size(); i++) {
                     String path = removePaths.elementAt(i);
+                    navigateTo(path);
                     removePath(path);
+                    navigateFrom(path);
+                }
+            }
+        }
+        if (createPaths != null) {
+            if (createPaths.size() > 0) {
+                for (int i = 0; i < createPaths.size(); i++) {
+                    String path = createPaths.elementAt(i);
+                    createFolder(path);
                 }
             }
         }
@@ -178,6 +226,15 @@ public class JObexFTP {
                 for (int i = 0; i < downloadPaths.size(); i++) {
                     String path = downloadPaths.elementAt(i);
                     downloadFile(path);
+                }
+            }
+        }
+        if (autorun) {
+            if (obexComm != null) {
+                try {
+                    obexComm.runApp(runJarPath);
+                } catch (IOException ex) {
+                    Logger.getLogger(JObexFTP.class.getName()).log(Level.SEVERE, null, ex);
                 }
             }
         }
@@ -225,22 +282,24 @@ public class JObexFTP {
         if (args.length < 1) {
             System.out.println("Java Obex FileTransfer for Siemens/Cinterion Wireless modules TC65/XT65 ....");
             System.out.println();
-            System.out.println("Usage: JObexFTP SERIAL_INTERFACE COMMAND <arguments> [OPTIONS]");
+            System.out.println("Usage: JObexFTP [SERIAL_INTERFACE] [-o IP_ADDRESS:PORT] COMMAND <arguments> [OPTIONS]");
             System.out.println("Ex. Linux: JObexFTP /dev/ttyS0 -u /full_path/fileforupload -V");
             System.out.println("Ex. Windows: JObexFTP COM1 -u c:/full_path/fileforupload");
             System.out.println();
             System.out.println("Commands:");
             System.out.println("-l [<FOLDER>]\tListing folder");
             System.out.println("-u <PATH> [<FOLDER>]\tUpload file to a:/ in module");
+            System.out.println("-c <FOLDER>  \tCreate a folder on the module");
             System.out.println("-d <PATH>    \tDownload file from module");
-            System.out.println("-r <PATH>    \tDeleting file or folder");
+            System.out.println("-r <PATH>    \tDelete a file or folder");
+            System.out.println("-f           \tFormat the flash filesystem");
             System.out.println("-v           \tPrint out the version");
             System.out.println("Options:");
             // System.out.println("-M <FOLDER>  \tMove to a folder, before/to uploading");
             System.out.println("-B <value>   \tChange BaudRate (def.: 115200)");
             System.out.println("-F <type>    \tChange FlowControl (def.: RTSCTS)");
             System.out.println("             \tTypes: 0: None; 1: XonXoff; 2: RTSCTS.  ");
-            System.out.println("-R           \tAutorun uploaded jars");
+            System.out.println("-R <JARPATH> \tAutorun jar in <JARPATH>");
             System.out.println("-S           \tJust stdout the file, don't save.");
             System.out.println("-V           \tView detalied process");
             System.out.println("-A           \tView ATCommand communication");
@@ -250,8 +309,10 @@ public class JObexFTP {
             System.out.println();
             System.out.println();
             System.out.println("Application developed by: ");
-            System.out.println("Ondrej Janovsk� <oj@alarex.cz> www.m2marchitect.com");
-            System.out.println("Ricardo Guilherme Schmidt <3esmit@gmail.com> www.lhf-instrumentacao.com\n\n");
+            System.out.println("Ondrej Janovsk� <oj@alarex.cz> www.m2marchitect.com");
+            System.out.println("Ricardo Guilherme Schmidt <3esmit@gmail.com> www.lhf-instrumentacao.com");
+            System.out.println("Radu Petrișor <radu.petrisor@safefleet.eu> www.safefleet.eu\n\n");
+            System.out.println("Florian Chiș <florian.chis@scada.ro> www.scada.ro\n\n");
             System.out.println();
             System.out.println();
             System.out.println("Using RxTx library from http://rxtx.qbang.org/");
@@ -274,7 +335,11 @@ public class JObexFTP {
         FileInputStream f = null;
         try {
             f = new FileInputStream(path);
-            obexComm.sendFile(path, f);
+            if(obexComm.sendFile(path, f))
+                System.out.println("File " + path + " successfuly uploaded.");
+            else
+                System.out.println("Error while uploading " + path);
+
         } catch (FileNotFoundException ex) {
             Logger.getLogger(JObexFTP.class.getName()).log(Level.SEVERE, null, ex);
         } catch (IOException ex) {
@@ -296,6 +361,37 @@ public class JObexFTP {
         try {
             obexComm.deleteFile(new OBEXFile(path));
         } catch (OBEXException ex) {
+            Logger.getLogger(JObexFTP.class.getName()).log(Level.SEVERE, null, ex);
+        }
+    }
+
+    private String navigateTo(String path){
+        System.out.println("# Going to "+path);
+        String[] pathList = path.split("/");
+        for (int i=0;i<pathList.length-1;i++)
+            try{
+                obexComm.setPath(pathList[i], false, false);
+            }catch(OBEXException ex){
+                Logger.getLogger(JObexFTP.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        return pathList[pathList.length-1];
+    }
+
+    private void navigateFrom(String path){
+        System.out.println("# Going backwards from "+path);
+        String[] pathList = path.split("/");
+        for (int i=pathList.length-1;i>=0;i--)
+            try{
+                obexComm.setPath(pathList[i], true, false);
+            }catch(OBEXException ex){
+                Logger.getLogger(JObexFTP.class.getName()).log(Level.SEVERE, null, ex);
+            }
+    }
+
+    private void createFolder(String folderName){
+        try{
+            obexComm.setPath(folderName, false, true);
+        }catch(OBEXException ex){
             Logger.getLogger(JObexFTP.class.getName()).log(Level.SEVERE, null, ex);
         }
     }

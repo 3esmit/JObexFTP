@@ -1,14 +1,10 @@
-/*
- * To change this template, choose Tools | Templates
- * and open the template in the editor.
- */
 package com.lhf.obex.dao;
 
 /**
  *
  * @author Ricardo Guilherme Schmidt
  */
-public class OBEXObject {
+public abstract class OBEXObject {
 
     private String name, modified, userPerm, groupPerm;
 
