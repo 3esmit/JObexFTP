@@ -131,25 +131,44 @@ public class OBEXProtocol implements OBEXInterface {
     }
 
     /**
+     * @param serial to be connected
+     * @throws OBEXException if could not open connection
+     */
+    public OBEXProtocol(CommPortIdentifier serial, boolean check) throws OBEXException {
+        verbose("# Connecting...");
+        try {
+            open(serial);
+            start(check);
+        } catch (OBEXException ex) {
+            close();
+            throw ex;
+        } catch (IOException ex) {
+            close();
+            ex.printStackTrace();
+            throw new OBEXException(ex.getMessage(), ex);
+        }
+    }
+
+    /**
      * Opens a Socket Connection to an ethernet to RS232 converter
      * @param address the network address of the ethernet to RS232 converter
      * @param port the port that the RS232 converter uses to relay the data
      * @throws OBEXException if the connection cannot be opened
      */
-     public OBEXProtocol(String address, int port,boolean check) throws OBEXException{
-         try{
-             System.out.println("# Opening socket connection to "+address+":"+port);
-             socketConnection = new Socket(address,port);
-             is = socketConnection.getInputStream();
-             os = socketConnection.getOutputStream();
-             start(check);
-         }catch(IOException ex){
-             System.out.println("# Error while opening the connection");
-             close();
-             ex.printStackTrace();
-             throw new OBEXException(ex.getMessage(), ex);
-         }
-     }
+    public OBEXProtocol(String address, int port, boolean check) throws OBEXException {
+        try {
+            System.out.println("# Opening socket connection to " + address + ":" + port);
+            socketConnection = new Socket(address, port);
+            is = socketConnection.getInputStream();
+            os = socketConnection.getOutputStream();
+            start(check);
+        } catch (IOException ex) {
+            System.out.println("# Error while opening the connection");
+            close();
+            ex.printStackTrace();
+            throw new OBEXException(ex.getMessage(), ex);
+        }
+    }
 
     /**
      * Helper function to send out more information about the process.
@@ -316,7 +335,7 @@ public class OBEXProtocol implements OBEXInterface {
      * @throws IOException something goes wrong
      */
     private void start(boolean check) throws IOException {
-        try {            
+        try {
             if (check) {
                 if (autoon > 0) {
                     turnOn();
@@ -356,6 +375,24 @@ public class OBEXProtocol implements OBEXInterface {
     }
 
     /**
+     * Methor that simply try to read from inputstream. While avaliable, append chars and return
+     * @return the buffered string
+     * @throws IOException
+     */
+    public String read() throws IOException {
+        StringBuffer buff = new StringBuffer();
+        char c;
+        while (is.available() > 0) {
+            c = (char) is.read();
+            buff.append(c);
+        }
+        if (veratcmd) {
+            getOut().write(buff.toString().getBytes());
+        }
+        return buff.toString();
+    }
+
+    /**
      * Function to read all data from inputstream
      * @return the data read
      * @throws IOException if could not read.
@@ -377,11 +414,15 @@ public class OBEXProtocol implements OBEXInterface {
      * @returns byte[] answer
      * @throws IOException
      */
-    private byte[] readAnswer(long timeout) throws IOException{
+    private byte[] readAnswer(long timeout) throws IOException {
         long ct = System.currentTimeMillis();
-        do{
-            try{Thread.sleep(20);}catch(Exception _){/*do nothing*/}
-        }while(ct+timeout > System.currentTimeMillis() && is.available() == 0);
+        do {
+            try {
+                Thread.sleep(20);
+            } catch (Exception _) {/*do nothing*/
+
+            }
+        } while (ct + timeout > System.currentTimeMillis() && is.available() == 0);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         long T0 = System.currentTimeMillis();
         while ((System.currentTimeMillis() - T0) < 100) { //fixed: avoid orphan packages
@@ -406,13 +447,13 @@ public class OBEXProtocol implements OBEXInterface {
             if (wasTurnedOff && autoon > 1) {
                 turnOff();
             }
-            if(is!=null) {
+            if (is != null) {
                 is.close();
-                is=null;
+                is = null;
             }
-            if(os!=null) {
+            if (os != null) {
                 os.close();
-                os=null;
+                os = null;
             }
         } catch (IOException ex) {
             ex.printStackTrace();
@@ -422,8 +463,12 @@ public class OBEXProtocol implements OBEXInterface {
         if (serialPort != null) {
             serialPort.close();
         }
-        if (socketConnection != null){
-            try{socketConnection.close();}catch(IOException ex){};
+        if (socketConnection != null) {
+            try {
+                socketConnection.close();
+            } catch (IOException ex) {
+            }
+            ;
         }
 
     }
@@ -523,11 +568,12 @@ public class OBEXProtocol implements OBEXInterface {
             deleteFile(object);
             verbose("# Sending: " + object.getName());
             put(PUT_SEND, object);
-            ans =readAnswer(1000);
-            if (ans.length > 0 && ((ans[0]&0xff)==0x90 || (ans[0]&0xff)==0xA0))
-                ok=true;
+            ans = readAnswer(1000);
+            if (ans.length > 0 && ((ans[0] & 0xff) == 0x90 || (ans[0] & 0xff) == 0xA0)) {
+                ok = true;
+            }
             verbose("Ok uploading... ");
-            if (!ok){
+            if (!ok) {
                 System.out.println("\r\n# Error sending the file");
                 return false;
             }
@@ -535,17 +581,18 @@ public class OBEXProtocol implements OBEXInterface {
                 while (put(PUT_SEND_MORE, object)) {
                     //end = false;
                     ok = false;
-                    ans =readAnswer(1000);
-                    if (ans.length > 0 && ((ans[0]&0xff)==0x90 || (ans[0]&0xff)==0xA0))
-                        ok=true;
+                    ans = readAnswer(1000);
+                    if (ans.length > 0 && ((ans[0] & 0xff) == 0x90 || (ans[0] & 0xff) == 0xA0)) {
+                        ok = true;
+                    }
                     if (!ok) {
                         System.out.println("\r\n# Error sending the file");
                         return false;
                     }
                 }
-            }
-            else
+            } else {
                 return true;
+            }
             if (object.getName().toLowerCase().indexOf(".jar") > -1 || object.getName().toLowerCase().indexOf(".jad") > -1) {
                 object.setUserPerm("\"RWD\"");
                 put(PUT_CHANGE, object);
@@ -800,20 +847,21 @@ public class OBEXProtocol implements OBEXInterface {
      * @return true if successful
      * @throws OBEXException if the operation was not successful
      */
-    public boolean format() throws OBEXException{
-        try{
+    public boolean format() throws OBEXException {
+        try {
             verbose("Formatting");
             os.write(FORMAT);
             os.flush();
             byte[] ans = readAnswer(60000);
             verbose("Got: ");
             printHexChars(ans);
-            if (ans.length > 0 && (ans[0]&0xff)==0xA0)
+            if (ans.length > 0 && (ans[0] & 0xff) == 0xA0) {
                 return true;
-            else
+            } else {
                 return false;
-        }catch(IOException ex){
-            verbose("###OBEXProtocol::format - IOException: "+ex);
+            }
+        } catch (IOException ex) {
+            verbose("###OBEXProtocol::format - IOException: " + ex);
             throw new OBEXException("Error while formatting the flash filesystem" + ex.getMessage(), ex);
         }
     }
@@ -970,18 +1018,22 @@ public class OBEXProtocol implements OBEXInterface {
 
     }
 
-    private void printHexChars(byte[] b){
-        if (!verbose)
+    private void printHexChars(byte[] b) {
+        if (!verbose) {
             return;
-        for(int i=0;i<b.length;i++)
-            System.out.print(Integer.toHexString(b[i]&0xff)+"-");
+        }
+        for (int i = 0; i < b.length; i++) {
+            System.out.print(Integer.toHexString(b[i] & 0xff) + "-");
+        }
     }
 
-    private void printHexChars(int[] b){
-        if (verbose == false)
+    private void printHexChars(int[] b) {
+        if (verbose == false) {
             return;
-        for(int i=0;i<b.length;i++)
-            System.out.print(Integer.toHexString(b[i]&0xff)+"-");
+        }
+        for (int i = 0; i < b.length; i++) {
+            System.out.print(Integer.toHexString(b[i] & 0xff) + "-");
+        }
     }
 
     /**
@@ -1025,14 +1077,14 @@ public class OBEXProtocol implements OBEXInterface {
             sleep(500);
             byte[] b = readAll();
             printHexChars(b);
-            if (b.length > 0 && (b[0]&0xFF) == 0xA0) {
+            if (b.length > 0 && (b[0] & 0xFF) == 0xA0) {
                 verbose("# Connected!");
                 success = true;
 //               int length = (256 * b[1]) + b[2];
 //               int flags = b[4];
                 //double obexVersion = b[3];
                 //maxpacket = (256 * b[5]) + b[6];
-                maxpacket = ((b[5]&0xFF)<<8) | b[6]&0xFF;
+                maxpacket = ((b[5] & 0xFF) << 8) | b[6] & 0xFF;
 
 //                    verbose("# Length " + length);
 //                verbose("# ObexVersion " + obexVersion / 10);
