@@ -1,3 +1,20 @@
+/**
+ *     This file is part of JObexFTP.
+ *
+ *    JObexFTP is free software: you can redistribute it and/or modify
+ *    it under the terms of the GNU Lesser General Public License as published by
+ *    the Free Software Foundation, either version 3 of the License, or
+ *    (at your option) any later version.
+ *
+ *    JObexFTP is distributed in the hope that it will be useful,
+ *    but WITHOUT ANY WARRANTY; without even the implied warranty of
+ *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+ *    GNU Lesser General Public License for more details.
+ *
+ *    You should have received a copy of the GNU Lesser General Public License
+ *    along with JObexFTP.  If not, see <http://www.gnu.org/licenses/>.
+ *
+ */
 package com.lhf.obex;
 
 import java.io.ByteArrayInputStream;
@@ -14,8 +31,8 @@ import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
- *
- * @author ricardo
+ * Parse obex-folder-listing xml into human readable
+ * @author Ricardo Guilherme Schmidt, Ondrej Javonski
  */
 public class OBEXFolderListingParser extends DefaultHandler {
 
