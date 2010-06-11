@@ -121,7 +121,7 @@ public class OBEXProtocol implements OBEXInterface {
     private boolean verbose = false;
     private boolean veratcmd = false;
     private int autoon = 2;
-    private int flowControl = FLOW_RTSCTS;
+    private int flowControl = FLOW_NONE;
     private int baudRate = 115200;
     private OutputStream out;
 
