@@ -36,18 +36,20 @@ import org.xml.sax.helpers.DefaultHandler;
  */
 public class OBEXFolderListingParser extends DefaultHandler {
 
-    private OBEXFolder folder;
     public OBEXFolderListingParser(byte[] data) throws ParserConfigurationException, SAXException, IOException {
         super();
         folder = new OBEXFolder();
         init(data);
     }
+    private OBEXFolder folder;
+
     public OBEXFolderListingParser(byte[] data, OBEXFolder folder) throws ParserConfigurationException, SAXException, IOException {
         super();
         this.folder = folder;
         init(data);
     }
-    private void init(byte[] data) throws ParserConfigurationException, SAXException, IOException{
+
+    private void init(byte[] data) throws ParserConfigurationException, SAXException, IOException {
         SAXParserFactory spf = SAXParserFactory.newInstance();
         spf.setValidating(false);
         spf.setFeature("http://xml.org/sax/features/validation", false);
@@ -63,9 +65,9 @@ public class OBEXFolderListingParser extends DefaultHandler {
     @Override
     public void startElement(String uri, String localName, String qName, Attributes attributes) throws SAXException {
 //        System.out.println(qName + " " + attributes.getValue("name") + " " + attributes.getValue("size") + " " + attributes.getValue("modified"));
-        if(qName.equalsIgnoreCase("folder")){
+        if (qName.equalsIgnoreCase("folder")) {
             getFolder().addFolder(attributes.getValue("name"));
-        }else if(qName.equalsIgnoreCase("file")){
+        } else if (qName.equalsIgnoreCase("file")) {
             OBEXFile file = getFolder().addFile(attributes.getValue("name"));
             file.setSize(Long.parseLong(attributes.getValue("size")));
             file.setGroupPerm(attributes.getValue("group-perm"));
@@ -80,6 +82,4 @@ public class OBEXFolderListingParser extends DefaultHandler {
     public OBEXFolder getFolder() {
         return folder;
     }
-
-   
 }

@@ -34,7 +34,7 @@ import com.lhf.obex.dao.OBEXFile;
  */
 public class JObexFTP {
 
-    public static final String version = "0.15 build 070610";
+    public static final String version = "0.15.3 build 080610";
     private Vector<String> listPaths;
     private Vector<String> downloadPaths;
     private Vector<String> removePaths;
@@ -186,6 +186,7 @@ public class JObexFTP {
         if (format){
             if (obexComm != null)
                 try{
+                    System.out.println("Formating...");
                     if (obexComm.format()){
                         System.out.println("Format successful");
                     }else
