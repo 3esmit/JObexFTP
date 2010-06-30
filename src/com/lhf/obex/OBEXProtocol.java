@@ -48,6 +48,7 @@ public class OBEXProtocol implements OBEXInterface {
     public void setVerbose(boolean aVerbose) {
         verbose = aVerbose;
     }
+    private boolean verbose = false;
 
     /**
      * @param aVeratcmd the veratcmd to set
@@ -55,6 +56,7 @@ public class OBEXProtocol implements OBEXInterface {
     public void setVeratcmd(boolean aVeratcmd) {
         veratcmd = aVeratcmd;
     }
+    private boolean veratcmd = false;
 
     /**
      * @param aAutoon the autoon to set
@@ -62,13 +64,7 @@ public class OBEXProtocol implements OBEXInterface {
     public void setAutoon(int aAutoon) {
         autoon = aAutoon;
     }
-
-    /**
-     * @return the flowControl
-     */
-    public int getFlowControl() {
-        return flowControl;
-    }
+    private int autoon = 2;
 
     /**
      * @param aFlowControl the flowControl to set
@@ -80,6 +76,22 @@ public class OBEXProtocol implements OBEXInterface {
             throw new InvalidParameterException("Parameter must be between 0 and 2");
         }
     }
+    private int flowControl = FLOW_RTSCTS;
+
+    /**
+     * @return the flowControl
+     */
+    public int getFlowControl() {
+        return flowControl;
+    }
+
+    /**
+     * @param aBaudRate the baudRate to set
+     */
+    public void setBaudRate(int aBaudRate) {
+        baudRate = aBaudRate;
+    }
+    private int baudRate = 115200;
 
     /**
      * @return the baudRate
@@ -89,11 +101,12 @@ public class OBEXProtocol implements OBEXInterface {
     }
 
     /**
-     * @param aBaudRate the baudRate to set
+     * @param aOut the out to set
      */
-    public void setBaudRate(int aBaudRate) {
-        baudRate = aBaudRate;
+    public void setOut(OutputStream aOut) {
+        out = aOut;
     }
+    private OutputStream out;
 
     /**
      * @return the out
@@ -104,26 +117,6 @@ public class OBEXProtocol implements OBEXInterface {
         }
         return out;
     }
-
-    /**
-     * @param aOut the out to set
-     */
-    public void setOut(OutputStream aOut) {
-        out = aOut;
-    }
-    private InputStream is;
-    private OutputStream os;
-    private SerialPort serialPort;
-    private Socket socketConnection;
-    private int maxpacket = 600;
-    private boolean wasTurnedOff = false;
-    private boolean obexConnected = false;
-    private boolean verbose = false;
-    private boolean veratcmd = false;
-    private int autoon = 2;
-    private int flowControl = FLOW_NONE;
-    private int baudRate = 115200;
-    private OutputStream out;
 
     /**
      * @param serial to be connected
@@ -186,6 +179,7 @@ public class OBEXProtocol implements OBEXInterface {
             throw new OBEXException(ex.getMessage(), ex);
         }
     }
+    private Socket socketConnection;
 
     /**
      * Helper function to send out more information about the process.
@@ -255,6 +249,9 @@ public class OBEXProtocol implements OBEXInterface {
             throw new OBEXException(portIdentifier.getName() + " in use " + ex.getMessage(), ex);
         }
     }
+    private SerialPort serialPort;
+    private InputStream is;
+    private OutputStream os;
 
     /**
      * Helper function to sleep the current Thread
@@ -327,7 +324,7 @@ public class OBEXProtocol implements OBEXInterface {
     /**
      * Function to turn on module, it blocks the autostart of the app (if is not started yet),
      * put module in airplane mode to transfer files without gsm signal
-     */
+     */    
     private void turnOn() throws IOException {
         try {
             if (send("ATI\r\n").indexOf("ERROR") > -1) {
@@ -344,6 +341,7 @@ public class OBEXProtocol implements OBEXInterface {
             throw ex;
         }
     }
+    private boolean wasTurnedOff = false;
 
     /**
      * Start function to openstream, turn on, switch to command mode and open obex stream
@@ -442,7 +440,7 @@ public class OBEXProtocol implements OBEXInterface {
         } while (ct + timeout > System.currentTimeMillis() && is.available() == 0);
         ByteArrayOutputStream baos = new ByteArrayOutputStream();
         long T0 = System.currentTimeMillis();
-        while ((System.currentTimeMillis() - T0) < 100) { //fixed: avoid orphan packages
+        while ((System.currentTimeMillis() - T0) < 300) { //fixed: avoid orphan packages
             while (is.available() > 0) {
                 baos.write(is.read());
             }
@@ -485,9 +483,7 @@ public class OBEXProtocol implements OBEXInterface {
                 socketConnection.close();
             } catch (IOException ex) {
             }
-            ;
         }
-
     }
 
     /**
@@ -555,7 +551,7 @@ public class OBEXProtocol implements OBEXInterface {
 
     public boolean deleteFile(OBEXFile object) throws OBEXException {
         verbose("# Deleting: " + object.getName());
-        put(PUT_DELETE, object);
+        put(OBEX_DELETE, object);
         boolean end = false, success = false;
         try {
             while (!end) {
@@ -584,22 +580,27 @@ public class OBEXProtocol implements OBEXInterface {
             //goTo(filename);
             deleteFile(object);
             verbose("# Sending: " + object.getName());
-            put(PUT_SEND, object);
+            put(OBEX_PUT, object);
             ans = readAnswer(1000);
-            if (ans.length > 0 && ((ans[0] & 0xff) == 0x90 || (ans[0] & 0xff) == 0xA0)) {
-                ok = true;
+            printHexChars(ans);
+            if (ans.length > 0) {
+                if ((ans[0] & 0xff) == OBEX_CONTINUE || (ans[0] & 0xff) == OBEX_OK) {
+                    ok = true;
+                } else if ((ans[0] & 0xff) == OBEX_FORBIDDEN) {
+                    System.out.println("\r\n# Forbidden - operation is understood but refused!");
+                }
             }
-            verbose("Ok uploading... ");
             if (!ok) {
                 System.out.println("\r\n# Error sending the file");
                 return false;
             }
+            verbose("Ok uploading... ");
             if (object.available() > 0) {
-                while (put(PUT_SEND_MORE, object)) {
+                while (put(OBEX_PUT_NEXT, object)) {
                     //end = false;
                     ok = false;
                     ans = readAnswer(1000);
-                    if (ans.length > 0 && ((ans[0] & 0xff) == 0x90 || (ans[0] & 0xff) == 0xA0)) {
+                    if (ans.length > 0 && ((ans[0] & 0xff) == OBEX_CONTINUE || (ans[0] & 0xff) == OBEX_OK)) {
                         ok = true;
                     }
                     if (!ok) {
@@ -612,7 +613,7 @@ public class OBEXProtocol implements OBEXInterface {
             }
             if (object.getName().toLowerCase().indexOf(".jar") > -1 || object.getName().toLowerCase().indexOf(".jad") > -1) {
                 object.setUserPerm("\"RWD\"");
-                put(PUT_CHANGE, object);
+                put(OBEX_CHANGE_PERMISSION, object);
                 sleep(500);
                 readAll();
             }
@@ -621,7 +622,6 @@ public class OBEXProtocol implements OBEXInterface {
             System.out.println("### IOError sending file");
             throw new OBEXException(ex.getMessage(), ex);
         }
-
     }
 
     /**
@@ -674,7 +674,7 @@ public class OBEXProtocol implements OBEXInterface {
         byte[] b;
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
-            bos.write((backwards ? SETPATH2_OPCODE : SETPATH_OPCODE)); //setpath
+            bos.write((backwards ? OBEX_SET_PATH2 : OBEX_SET_PATH)); //setpath
             bos.write(0);
             bos.write(0); //length of package, that will be deducted later
             bos.write((create ? 0 : 2)); //flag   2 - Dont create dir, 0 - Create dir and move to it
@@ -708,12 +708,12 @@ public class OBEXProtocol implements OBEXInterface {
         try {
             ByteArrayOutputStream bos = new ByteArrayOutputStream();
             byte[] b;
-            bos.write(GET_OPCODE);
+            bos.write(OBEX_GET);
 
             bos.write(0);
             bos.write(0);
             if (what.startsWith("x-obex/")) {
-                bos.write(0x42);
+                bos.write(OBEX_HI_TYPE); //object type
                 b = what.getBytes();
             } else {
                 bos.write(1);
@@ -779,29 +779,29 @@ public class OBEXProtocol implements OBEXInterface {
                         sleep(100);
                     }
                 } while (ch == -1);
-                if (ch == 0xA0) {
+                if (ch == OBEX_OK) {
                     end = true;
                     verbose("# Success!");
-                } else if (ch == 0x90) {
+                } else if (ch == OBEX_CONTINUE) {
                     verbose("# Loading (" + tms + ")");
-                } else if (ch == 0xC0) {
+                } else if (ch == OBEX_BAD_REQUEST) {
                     verbose("# Bad Request..");
                     throw new OBEXException("Bad Request"); //Need to be thrown ?
-                } else if (ch == 0xC1 || ch == 0xC3) {
+                } else if (ch == OBEX_UNAUTHORIZED || ch == OBEX_FORBIDDEN) {
                     verbose("# Forbidden... " + Integer.toHexString(ch));
                 }
 //                sleep(10);
                 is.skip(2);
 //                sleep(10);
                 l1 = is.read();
-                if (l1 == 0xC3) {
+                if (l1 == OBEX_HI_LENGTH) { //obejct length
 //                    sleep(10);
                     is.skip(4);
                     count += 5;
                     sleep(10);
                     l1 = is.read();
                 }
-                if (l1 == 0x48) {
+                if (l1 == OBEX_HI_BODY) {
 //                    sleep(10);
                     l1 = is.read();
                     if (l1 < 0) {
@@ -837,7 +837,7 @@ public class OBEXProtocol implements OBEXInterface {
                         bos.write(toread);
                     }
                 }
-                os.write(GET_OPCODE);
+                os.write(OBEX_GET);
                 os.write(00);
                 os.write(3);
                 os.flush();
@@ -867,12 +867,12 @@ public class OBEXProtocol implements OBEXInterface {
     public boolean format() throws OBEXException {
         try {
             verbose("Formatting");
-            os.write(FORMAT);
+            os.write(OBEX_OPERATION_FORMAT);
             os.flush();
             byte[] ans = readAnswer(60000);
             verbose("Got: ");
             printHexChars(ans);
-            if (ans.length > 0 && (ans[0] & 0xff) == 0xA0) {
+            if (ans.length > 0 && (ans[0] & 0xff) == OBEX_OK) {
                 return true;
             } else {
                 return false;
@@ -897,10 +897,10 @@ public class OBEXProtocol implements OBEXInterface {
         if (object.getName().equals("")) {
             throw new InvalidParameterException("Invalid file");
         }
-        if (type == PUT_CHANGE && (object.getUserPerm() == null || object.getUserPerm().length() <= 0)) {
+        if (type == OBEX_CHANGE_PERMISSION && (object.getUserPerm() == null || object.getUserPerm().length() <= 0)) {
             throw new InvalidParameterException("Change type needs OBEXObject property setted");
         }
-        if (type >= PUT_SEND && (object.getInputStream() == null)) {
+        if (type >= OBEX_PUT && (object.getInputStream() == null)) {
             throw new InvalidParameterException("To send files OBEXObject needs a filestream pointing to the file");
         }
         ByteArrayOutputStream bos = new ByteArrayOutputStream();
@@ -910,33 +910,33 @@ public class OBEXProtocol implements OBEXInterface {
         try {
             boolean small = false;
             int maxp = this.maxpacket;
-            if (type == PUT_SEND_MORE && object.available() <= 0) {
+            if (type == OBEX_PUT_NEXT && object.available() <= 0) {
                 return false;
             } else {
                 maxp = maxpacket - 40;
             }
-            if (type == PUT_SEND) {
+            if (type == OBEX_PUT) {
                 if (object.available() <= 512) {
                     small = true;
                 }
             }
-            if (type == PUT_SEND_MORE) {
+            if (type == OBEX_PUT_NEXT) {
                 bos.write(0x02);
-            } else if (type == PUT_SEND && !small) {
+            } else if (type == OBEX_PUT && !small) {
                 bos.write(0x2);
             } else {
                 bos.write(0x82);
             }
             bos.write(0);
             bos.write(0);//size, to be filled up later
-            if (type < PUT_SEND_MORE) {
+            if (type < OBEX_PUT_NEXT) {
                 bos.write(1);
                 b = toBytes(object.getName());
                 pos = b.length + 3;
                 bos.write(pos >> 8);
                 bos.write(pos & 255);
                 bos.write(b);
-                if (type == PUT_CHANGE) {
+                if (type == OBEX_CHANGE_PERMISSION) {
                     bos.write(0x4C);
                     bos.write(0);
                     bos.write(object.getUserPerm().length() + 3 + 2);
@@ -944,8 +944,8 @@ public class OBEXProtocol implements OBEXInterface {
                     bos.write(object.getUserPerm().length());
                     bos.write(object.getUserPerm().getBytes());
                 } else {
-                    bos.write(0xC3);
-                    if (type == PUT_DELETE) {
+                    bos.write(OBEX_HI_LENGTH);
+                    if (type == OBEX_DELETE) {
                         bos.write(0);
                         bos.write(0);
                         bos.write(0);
@@ -965,16 +965,16 @@ public class OBEXProtocol implements OBEXInterface {
                         x = (flength & 255);
                         bos.write(x);
 
-                        bos.write(0x44);
+                        bos.write(OBEX_HI_TIME);
                         bos.write(0);
                         bos.write(0x12);
                         bos.write(getTime().getBytes());
                         pos = (maxp - bos.size());
 
                         if (small) {
-                            bos.write(0x49);
+                            bos.write(OBEX_HI_END_OF_BODY);
                         } else {
-                            bos.write(0x48);
+                            bos.write(OBEX_HI_BODY);
                         }
 
 
@@ -990,7 +990,7 @@ public class OBEXProtocol implements OBEXInterface {
                     }
                 }
             } else {
-                bos.write(0x48);
+                bos.write(OBEX_HI_BODY);
                 pos = maxp - 6;
                 if (object.available() < pos) {
                     pos = object.available() + 3;
@@ -1013,10 +1013,10 @@ public class OBEXProtocol implements OBEXInterface {
             //System.out.println("packet:" + pos);
             b[1] = (byte) (pos >> 8);
             b[2] = (byte) (pos & 255);
-            if (end && type == PUT_SEND_MORE) {
+            if (end && type == OBEX_PUT_NEXT) {
                 //System.out.println("end of file " + object.getFileStream().available());
-                b[0] = (byte) 0x82;
-                b[3] = (byte) 0x49;
+                b[0] = (byte) OBEX_PUT_FINAL;
+                b[3] = (byte) OBEX_HI_END_OF_BODY;
             }
 
             os.write(b);
@@ -1089,12 +1089,12 @@ public class OBEXProtocol implements OBEXInterface {
                 throw new OBEXException("RGGGSM mode is wrong.");
             }
             sleep(200);
-            os.write(OBEX_CONNECT);
+            os.write(OBEX_OPERATION_CONNECT);
             os.flush();
             sleep(500);
             byte[] b = readAll();
             printHexChars(b);
-            if (b.length > 0 && (b[0] & 0xFF) == 0xA0) {
+            if (b.length > 0 && (b[0] & 0xFF) == OBEX_OK) {
                 verbose("# Connected!");
                 success = true;
 //               int length = (256 * b[1]) + b[2];
@@ -1125,6 +1125,8 @@ public class OBEXProtocol implements OBEXInterface {
         }
         return success;
     }
+    private int maxpacket = 600;
+    private boolean obexConnected = false;
 
     /**
      * Closes the obexconnection, and switch to commandmode
@@ -1139,7 +1141,7 @@ public class OBEXProtocol implements OBEXInterface {
                 return true;
             }
             sleep(500);
-            os.write(OBEXInterface.DISCONNECT_OPCODE);
+            os.write(OBEX_DISCONNECT);
             os.write(0x00);
             os.write(0x03);
 
@@ -1183,7 +1185,7 @@ public class OBEXProtocol implements OBEXInterface {
                 verbose("# Application running in module");
                 return;
             } else {
-                throw new OBEXException("Wrong application path or mode");
+                throw new OBEXException("Wrong application path, mode or jar file not found");
             }
         } catch (IOException ex) {
             verbose("### Error starting application, throwing. " + ex.getMessage());
@@ -1208,6 +1210,22 @@ public class OBEXProtocol implements OBEXInterface {
      * @return a string cointaing the now date and time.
      */
     private String getTime() {
+        StringBuffer result = new StringBuffer();
+        Calendar calendar = Calendar.getInstance();
+        result.append(calendar.get(Calendar.YEAR));
+        int val = calendar.get(Calendar.MONTH) + 1;
+        result.append(val<10?"0":"").append(val);
+        val = calendar.get(Calendar.DAY_OF_MONTH);
+        result.append(val<10?"0":"").append(val).append("T");
+        val = calendar.get(Calendar.HOUR_OF_DAY);
+        result.append(val<10?"0":"").append(val);
+        val = calendar.get(Calendar.MINUTE);
+        result.append(val<10?"0":"").append(val);
+        val = calendar.get(Calendar.SECOND);
+        result.append(val<10?"0":"").append(val);
+        return result.toString();
+        
+        /*
         StringBuffer buffer = new StringBuffer();
         Calendar calendar = Calendar.getInstance();
         buffer.append(calendar.get(Calendar.YEAR));
@@ -1240,5 +1258,7 @@ public class OBEXProtocol implements OBEXInterface {
         String t = buffer.toString();
         buffer = null;
         return t;
+         *
+         */
     }
 }

@@ -21,43 +21,41 @@ import com.lhf.obex.dao.OBEXFile;
 
 /**
  * Basic structure of OBEX client
- * @author Ricardo Guilherme Schmidt
+ * @author Ricardo Guilherme Schmidt, Florian Chiș
  */
 public interface OBEXInterface {
-
-    /** Default connection header to send */
-    static final byte[] OBEX_CONNECT = {(byte) 0x80, (byte) 00, (byte) 0x1a, (byte) 0x10, (byte) 00, (byte) 0x40, 6, (byte) 0x46, (byte) 00, (byte) 0x13, (byte) 0x6B, 1, (byte) 0xCB, (byte) 0x31, (byte) 0x41, 6, (byte) 0x11, (byte) 0xD4, (byte) 0x9A, (byte) 0x77, 0, (byte) 0x50, (byte) 0xDA, (byte) 0x3F, (byte) 0x47, (byte) 0x1f};
-    /** Setpath backyards hex "byte" */
-    static final int SETPATH2_OPCODE = 0x86;
-    /** Setpath forwards hex "byte" */
-    static final int SETPATH_OPCODE = 0x85;
-    /** Abort hex "byte" */
-    static final int ABORT_OPCODE = 0x84;
-    /** Get hex "byte" */
-    static final int GET_OPCODE = 0x83;
-    /** Put hex "byte" */
-    static final int PUT_OPCODE = 0x82;
-    /** Disconnect hex "byte" */
-    static final int DISCONNECT_OPCODE = 0x81;
-    /** Connect hex "byte" */
-    static final int CONNECT_OPCODE = 0x80;
-    /** a put delete operation */
-    static final int PUT_DELETE = 0;
-    /** a put change operation */
-    static final int PUT_CHANGE = 1;
-    /** a put send first block operation */
-    static final int PUT_SEND = 2;
-    /** a put send next blocks operation */
-    static final int PUT_SEND_MORE = 3;
-    /** a put format operation*/
-    static final int PUT_FORMAT = 4;
-    /**Format filesystem hex sequence*/
-    static final byte[] FORMAT = {(byte) 0x82, (byte) 0x00, (byte) 0x08, (byte) 0x4c, (byte) 0x00, (byte) 0x05, (byte) 0x31, (byte) 0x00};
-    /** no flow control */
+    
+    //----------OPERATION CODES-------------------------------------------------
+    static final int OBEX_CONNECT = 0x80; //connect
+    static final int OBEX_DISCONNECT = 0x81; //disconnect
+    static final int OBEX_FORMAT = 0x04; //format filesystem
+    static final int OBEX_DELETE = 0x00; //delete file
+    static final int OBEX_CHANGE_PERMISSION = 0x01; //change file permisions
+    static final int OBEX_PUT = 0x02; //put operation
+    static final int OBEX_PUT_NEXT = 0x03; //put next chunck
+    static final int OBEX_PUT_FINAL = 0x82; //final chunk
+    static final int OBEX_GET = 0x83; //get operation
+    static final int OBEX_ABORT = 0x84; //abort
+    static final int OBEX_SET_PATH = 0x85; //set path
+    static final int OBEX_SET_PATH2 = 0x86;
+    //----------RESPONSE CODES--------------------------------------------------
+    static final int OBEX_CONTINUE = 0x90; //next
+    static final int OBEX_OK = 0xA0; //all done
+    static final int OBEX_BAD_REQUEST = 0xC0;
+    static final int OBEX_UNAUTHORIZED = 0xC1;
+    static final int OBEX_FORBIDDEN = 0xC3;
+    //----------OBEX HEADER IDENTIFIERS-----------------------------------------
+    static final int OBEX_HI_TYPE = 0x42; //object type
+    static final int OBEX_HI_TIME = 0x44; //time of modification
+    static final int OBEX_HI_LENGTH = 0xC3; //obect length
+    static final int OBEX_HI_BODY = 0x48; //chunck of object body
+    static final int OBEX_HI_END_OF_BODY = 0x49; //end of body
+    //----------INSTRUCTIONS----------------------------------------------------
+    static final byte[] OBEX_OPERATION_CONNECT = {(byte) 0x80, (byte) 00, (byte) 0x1a, (byte) 0x10, (byte) 00, (byte) 0x40, 6, (byte) 0x46, (byte) 00, (byte) 0x13, (byte) 0x6B, 1, (byte) 0xCB, (byte) 0x31, (byte) 0x41, 6, (byte) 0x11, (byte) 0xD4, (byte) 0x9A, (byte) 0x77, 0, (byte) 0x50, (byte) 0xDA, (byte) 0x3F, (byte) 0x47, (byte) 0x1f};
+    static final byte[] OBEX_OPERATION_FORMAT = {(byte) 0x82, (byte) 0x00, (byte) 0x08, (byte) 0x4c, (byte) 0x00, (byte) 0x05, (byte) 0x31, (byte) 0x00};
+    //----------OTHER-----------------------------------------------------------
     static final int FLOW_NONE = 0;
-    /** XonXoff flow control */
     static final int FLOW_XONXOFF = 1;
-    /** RtsCts flow control */
     static final int FLOW_RTSCTS = 2;
 
     /**
