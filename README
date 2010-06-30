@@ -1,33 +1,61 @@
+	1. About Project
+	----------------
+	What is JObexFTP?
+	JObexFTP is a Java implementation of Obex Client protocol under Siemiens/Cinterion AT specification aimed to work with TC65 and TC65i modules.
+	Its a fully opensource library (and application) to transfer files from/to obex server.
+	You can use it in any J2SE application to enable java communication to module without third party app. You can also use it as a MES in unsupported cinterion plataforms like Linux.
+	It can be easily adapted to similar devices.
 
-    About Project
-    -------------
+	2. Dependences
+	--------------
+	This software uses, obviously Java, and RxTx library.
+	RxTx is a native library that helps Serial (and Parallel) communication under Java.
+	Its freely avaliable in http://rxtx.qbang.org/ it also has a debian package that dosent works in modern linux but there is a project to fix that here http://github.com/chrisdew/rxtx
 
-    What is JObexFTP?
-    JObexFTP is a Java implementation of Obex Client protocol under Siemiens/Cinterion AT specification aimed to work with TC65 and TC65i modules. 
-    Its a fully opensource library (and application) to transfer files from/to obex server.
-    You can use it in any J2SE application to enable java communication to module without third party app. You can also use it as a MES in unsupported cinterion plataforms like Linux.
-    It can be easily adapted to similar devices.
+	3. How to get JObexFTP working?
+	-------------------------------
+	- Download and Install RxTx library. Please follow the instructions detailed in the file you downloaded.
+	- Download or compile JObexFTP.jar
+	- Download emulator shellscript
+	- Put both file together. I recommend it under WTK/bin/ where Windows WTK bins are.
+	- Configure Profile IDE to see the WTK using the emulator shellscript.
+	- Go to console, type 'dmesg | tail', see the output, connect device, type that command again and look out for a new USB device. In my computer it get identified as ttyACM*, but depending your distro it can be ttyUSB* or ttyS*. Once you found, keep that name in mind and edit emulator shellscript, go to first line and change de 'ttyUSB?' to your distro needs, in my case I change to ttyACM?, so the line get like this:
+	ttypath=`ls /dev/ttyACM? | tail -n 1`
+	- Install gtkterm. If you want to use other serial term, change the command in emulator script.
 
-    Dependences
-    -----------
-    This software uses, obviously Java, and RxTx library. 
-    RxTx is a native library that helps Serial (and Parallel) communication under Java. 
-    Its freely avaliable in http://rxtx.qbang.org/ it also has a debian package that dosent works in modern linux but there is a project to fix that here http://github.com/chrisdew/rxtx
+	4. Troubleshotting
+	------------------
+	- Check if you installed the RxTx in the right place, maybe you installed under a not used anymore JRE. I recommend you install in all JRE, and also in JDK's JRE, so it will be flawless.
+	- Check if you configured correctaly the ttypath in the emulator script.
+	- Are the two files in the same directory?
+	- Is your IDE sending the right parameters?
+	- If you still could not get it running, send detailed install process and error messages to 3esmit at gmail dot com.
+
+	5. Credits
+	-----------
+	- Ondrej Janovskï¿½ <oj@alarex.cz> www.m2marchitect.com
+	- Ricardo Guilherme Schmidt <3esmit@gmail.com> www.lhf-instrumentacao.com
+	- Radu PetriÈ™or <radu.petrisor@safefleet.eu> www.safefleet.eu
+	- Florian ChiÈ™ <florian.chis@scada.ro> www.scada.ro
+	- Lorenzo Patocchi <lorenzo.patocchi@cryms.com>
+	Obex protocol Java implementation by Ondrej Janovski
+	Thanks to all.
 
 
-	
 
-    Copyright (C) 2010  Ricardo Guilherme Schmidt
 
-    This program is free software: you can redistribute it and/or modify
-    it under the terms of the GNU Lesseer General Public License as published by
-    the Free Software Foundation, either version 3 of the License, or
-    any later version.
+	Copyright (C) 2010 Ricardo Guilherme Schmidt
 
-    This program is distributed in the hope that it will be useful,
-    but WITHOUT ANY WARRANTY; without even the implied warranty of
-    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
-    GNU Lesseer General Public License for more details.
+	This program is free software: you can redistribute it and/or modify
+	it under the terms of the GNU Lesseer General Public License as published by
+	the Free Software Foundation, either version 3 of the License, or
+	any later version.
 
-    You should have received a copy of the GNU Lesseer General Public License
-    along with this program.  If not, see <http://www.gnu.org/licenses/>.
+	This program is distributed in the hope that it will be useful,
+	but WITHOUT ANY WARRANTY; without even the implied warranty of
+	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
+	GNU Lesseer General Public License for more details.
+
+	You should have received a copy of the GNU Lesseer General Public License
+	along with this program. If not, see <http://www.gnu.org/licenses/>.
+
