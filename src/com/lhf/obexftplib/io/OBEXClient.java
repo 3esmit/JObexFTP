@@ -135,8 +135,10 @@ public class OBEXClient {
     public boolean eraseDisk() throws IOException {
         logger.log(Level.FINEST, "Erasing disk.");
         PutRequest req = new PutRequest();
+        req.setFinal();
         Header app = new Header(Header.APP_PARAMETERS);
         app.setValue(new byte[]{(byte) 0x31, (byte) 0x00});
+        req.addHeader(app);
         return Utility.threatResponse(put(req));
     }
 
@@ -165,11 +167,7 @@ public class OBEXClient {
         name.setValue(filename);
         req.addHeader(name);
 
-        Header lenght = new Header(Header.LENGTH);
-        lenght.setValue(new byte[]{0,0,0,0});
-        req.addHeader(lenght);
         Response res = put(req);
-        System.out.println(Utility.dumpBytes(res.toBytes()));
         return Utility.threatResponse(res);
     }
 
@@ -209,7 +207,7 @@ public class OBEXClient {
         type.setValue(Utility.nameToBytes(filename));
         request.addHeader(type);
         OBEXFile file = new OBEXFile(currentFolder, filename);
-        file.addResponses(get(request));
+        file.addResponses(getAll(request));
         return file;
     }
 
@@ -219,13 +217,13 @@ public class OBEXClient {
      * @return a byte array containing the xml
      * @throws IOException if an IO error occurs
      */
-    public OBEXFolder listFolder() throws IOException {
+    public OBEXFolder loadFolderListing() throws IOException {
         GetRequest request = new GetRequest();
         request.setFinal();
         Header type = new Header(Header.TYPE);
         type.setValue(device.getLsName());
         request.addHeader(type);
-        currentFolder.addResponses(get(request));
+        currentFolder.addResponses(getAll(request));
         return currentFolder;
     }
 
@@ -235,40 +233,32 @@ public class OBEXClient {
      * @return true if operation was successful.
      */
     public boolean writeFile(OBEXFile file) throws IOException {
-        boolean r = true;
         PutRequest req = new PutRequest(file.getHeaderSet());
-        PutResponse res = null;
-        OBEXFolder folder = file.getParentFolder();
-        if (folder != currentFolder) {
-            changeDirectory(folder.getPath(), false);
-        }
+        PutResponse res = new PutResponse(Response.BADREQUEST);
         Header body;
 
-        InputStream fileInputStream = file.getInputStream();
-        int ava = fileInputStream.available();
+        byte[] contents = file.getContents();
+        int toRead, read = 0, size = maxPacketLenght - req.getPacketLength();
         do {
-            int size = (maxPacketLenght - 40) - (req.getPacketLength());
+            int ava = contents.length - read;
             byte[] b;
             if (ava < size + 3) {
-                b = new byte[ava];
-                req.setFinal();
+                toRead = ava;
                 body = new Header(Header.END_OF_BODY);
+                req.setFinal();
             } else {
-                b = new byte[size - 3];
+                toRead = size - 3;
                 body = new Header(Header.BODY);
             }
-            fileInputStream.read(b);
+            b = Utility.getBytes(contents, read, toRead);
+            read += toRead;
             body.setValue(b);
             req.addHeader(body);
             res = put(req);
-            if (!Utility.threatResponse(res)) {
-                r = false;
-                logger.log(Level.WARNING, "Error writing file {0} response: {1}", new String[]{file.getName(), Utility.dumpBytes(res.toBytes())});
-            }
             req = new PutRequest();
-        } while ((ava = fileInputStream.available()) > 0);
 
-        return r;
+        } while ((res.getType() & 0x7F) == Response.CONTINUE);
+        return (res.getType() & 0x7F) == Response.SUCCESS;
     }
 
     /**
@@ -315,22 +305,27 @@ public class OBEXClient {
         return success;
     }
 
+    private GetResponse get(GetRequest request) throws IOException {
+        sendPacketAndWait(request, TIMEOUT);
+        if (hasIncomingPacket) {
+            return new GetResponse(incomingData.pullData());
+        }
+        return null;
+    }
+
     /**
      * Sends the packet and buffers the output in an bytearrayoutputstream until the last packet is sent, which is identified by the byte sequence {0x49, 0x00, 0x03}, then translates and returns
      * @param request the prepared request
      * @return the translated response
      * @throws IOException if an IO error occurs
      */
-    private GetResponse[] get(GetRequest request) throws IOException {
+    private GetResponse[] getAll(GetRequest request) throws IOException {
         logger.log(Level.FINER, "Get operation to perform.");
         ArrayList<GetResponse> arrayList = new ArrayList<GetResponse>();
 
         GetResponse response = new GetResponse(Response.BADREQUEST);
         do {
-            sendPacketAndWait(request, TIMEOUT);
-            if (hasIncomingPacket) {
-                arrayList.add(response = Utility.bytesToGetResponse(incomingData.pullData()));
-            }
+            arrayList.add(response = get(request));
             request = new GetRequest();
         } while ((response.getType() & 0x7F) == Response.CONTINUE);
 

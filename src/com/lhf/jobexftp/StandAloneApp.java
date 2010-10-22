@@ -177,7 +177,7 @@ public class StandAloneApp {
             if (args != null && args.length > 0 && !args[0].equalsIgnoreCase("")) {
                 c.changeDirectory(args[0], false);
             }
-            System.out.print(new String(c.listFolder().getListing()));
+            System.out.print(new String(c.loadFolderListing().getListing()));
             if (args != null && args.length > 0 && !args[0].equalsIgnoreCase("")) {
                 c.changeDirectory("/", false);
             }

@@ -10,11 +10,12 @@ import java.io.IOException;
 import java.util.ArrayList;
 import java.util.Enumeration;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 import javax.swing.JOptionPane;
 import com.lhf.obexftplib.fs.OBEXFile;
 import com.lhf.obexftplib.fs.OBEXFolder;
 import com.lhf.obexftplib.fs.OBEXObject;
+import java.util.Iterator;
+import java.util.Map;
 import org.junit.After;
 import org.junit.AfterClass;
 import org.junit.Before;
@@ -47,7 +48,8 @@ public class OBEXClientTest {
             CommPortIdentifier commPortIdentifier = e.nextElement();
             IDENT.add(commPortIdentifier.getName());
         }
-        selectedTestPort = CommPortIdentifier.getPortIdentifier((String) JOptionPane.showInputDialog(null, "Select CommPort to Test", "TestDrivenDevelopment", 0, null, IDENT.toArray(), 0));
+        Utility.configLogger(Level.FINER);
+        selectedTestPort = CommPortIdentifier.getPortIdentifier((String) JOptionPane.showInputDialog(null, "WARNING:\nThis test is going to\nerase all the contents\nof the following device:\n", "TDD: Select CommPort to Test", 0, null, IDENT.toArray(), 0));
         conn = new ATConnection(selectedTestPort);
         conn.setConnMode(ATConnection.MODE_DATA);
     }
@@ -70,19 +72,11 @@ public class OBEXClientTest {
      */
     @Test
     public void testConnect() throws Exception {
-        boolean b = instance.connect();
-        instance.disconnect();
-        assertTrue(b);
-    }
-
-    /**
-     * Test of disconnect method, of class OBEXClient.
-     */
-    @Test
-    public void testDisconnect() throws Exception {
-        instance.connect();
-        boolean b = instance.disconnect();
-        assertTrue(b);
+        System.out.println("Simple Connect/Disconnect test");
+        boolean b1 = instance.connect();
+        boolean b2 = instance.disconnect();
+        assertTrue(b1);
+        assertTrue(b2);
     }
 
     /**
@@ -90,64 +84,21 @@ public class OBEXClientTest {
      */
     @Test
     public void testAbort() throws Exception {
-        instance.connect();
-        final OBEXFile abortFile = createFile(1024 * 10, "at1.tst", TEST_FOLDER);
-        boolean b = instance.abort();
-        instance.changeDirectory(TEST_FOLDER.getPath(), true);
-        instance.removeObject(abortFile);
-        instance.disconnect();
-//        new Thread() {
-//
-//            @Override
-//            public void run() {
-//                try {
-//                    synchronized (TEST_FOLDER) {
-//                        TEST_FOLDER.notifyAll();
-//                        instance.writeFile(abortFile);
-//                        Thread.sleep(1000);
-//                    }
-//                } catch (InterruptedException ex) {
-//                    Logger.getLogger(OBEXClientTest.class.getName()).log(Level.SEVERE, null, ex);
-//                } catch (IOException ex) {
-//                    Logger.getLogger(OBEXClientTest.class.getName()).log(Level.SEVERE, null, ex);
-//                }
-//            }
-//        }.start();
-//        boolean b2;
-//        synchronized (TEST_FOLDER) {
-//            TEST_FOLDER.wait(10000);
-//            Thread.sleep(1000);
-//            b2 = instance.abort();
-//        }
-//        instance.listFolder();
-//        instance.disconnect();
-//        String listing = TEST_FOLDER.getListing();
-//        System.out.println(listing);
-//        assertTrue(b);
-//        assertTrue(b2);
-//        assertFalse(listing.indexOf(abortFile.getName()) > 0);
+        //this method is buggy to test
     }
 
-    /**
-     * Test of eraseDisk method, of class OBEXClient.
-     */
     @Test
-    public void testEraseDisk() throws Exception {
-//        instance.connect();
-        //
-//        instance.disconnect();
-    }
-
-    /**
-     * Test of removeFile method, of class OBEXClient.
-     */
-    @Test
-    public void testRemoveFile() throws Exception {
+    public void testCreateDir() throws IOException {
+        byte[] rootListing, testFolderListing;
         instance.connect();
-        final OBEXFile abortFile = createFile(1024 * 10, "at1.tst", TEST_FOLDER);
-        instance.changeDirectory(TEST_FOLDER.getPath(), true);
-        instance.removeObject(abortFile);
+        //try to go to an unexistentfolder, and must return the root listing
+        rootListing = instance.loadFolderListing().getContents();
+        //move to test folder and list
+        boolean b2 = instance.changeDirectory(TEST_FOLDER.getPath(), true);
+        testFolderListing = instance.loadFolderListing().getContents();
         instance.disconnect();
+        assertTrue(b2);
+        assertFalse(Utility.compareBytes(rootListing, testFolderListing));
     }
 
     /**
@@ -155,40 +106,114 @@ public class OBEXClientTest {
      */
     @Test
     public void testChangeDirectory() throws Exception {
+        byte[] rootListing, rootListing2, testFolderListing, testFolderListing3, rootListing3, testFolderListing2, rootListing4;
+
+        //connect and list default (root) folder.
         instance.connect();
-//        boolean b = instance.changeDirectory("nonExistentDir", false);
+        rootListing = instance.loadFolderListing().getContents();
+
+        //try to go to an unexistentfolder, and must return the root listing
+        boolean b1 = instance.changeDirectory("unExistentFolder", false);
+        rootListing2 = instance.loadFolderListing().getContents();
+
+        //move to test folder and list
         boolean b2 = instance.changeDirectory(TEST_FOLDER.getPath(), false);
-//        boolean b3 = instance.changeDirectory("createdDir", true);
-//        boolean b4 = instance.changeDirectory(TEST_FOLDER.getPath(), true);
-        instance.listFolder();
-        String listing = TEST_FOLDER.getListing();
-//        System.out.println(listing);
-        boolean b5 = (listing.indexOf("createdDir") > 0);
+        testFolderListing = instance.loadFolderListing().getContents();
 
-        instance.removeObject(Utility.nameToBytes("createdDir"));
+        //try to go to an unexistentfolder, and must return the testfolder listing
+        boolean b3 = instance.changeDirectory("unExistentFolder", false);
+        testFolderListing2 = instance.loadFolderListing().getContents();
 
-        instance.listFolder();
-        listing = TEST_FOLDER.getListing();
-        System.out.println(listing);
-        boolean b6 = (listing.indexOf("createdDir") > 0);
+        //move up and list
+        boolean b4 = instance.changeDirectory(TEST_FOLDER.getParentFolder().getPath(), false);
+        rootListing3 = instance.loadFolderListing().getContents();
+
+        //move to test folder and list
+        boolean b5 = instance.changeDirectory(TEST_FOLDER.getPath(), false);
+        testFolderListing3 = instance.loadFolderListing().getContents();
+
+        //move to parent and list.
+        boolean b6 = instance.changeDirectory(TEST_FOLDER.getParentFolder().getPath(), false);
+        rootListing4 = instance.loadFolderListing().getContents();
+
         instance.disconnect();
 
-//        assertFalse(b);
+        assertFalse(b1);
         assertTrue(b2);
-//        assertTrue(b3);
-//        assertTrue(b4);
+        assertFalse(b3);
+        assertTrue(b4);
         assertTrue(b5);
-        assertFalse(b6);
+        assertTrue(b6);
+
+        assertArrayEquals(rootListing, rootListing2);
+        assertArrayEquals(rootListing, rootListing3);
+        assertArrayEquals(rootListing, rootListing4);
+        assertArrayEquals(testFolderListing, testFolderListing2);
+        assertArrayEquals(testFolderListing, testFolderListing3);
+    }
+
+    /**
+     * Test of removeFile method, of class OBEXClient.
+     */
+    @Test
+    public void testRemoveObject() throws Exception {
+        System.out.println("Testing write/remove of object");
+        instance.connect();
+        final OBEXFile removeFile = createFile(1024 * 10, "remove.tst", TEST_FOLDER);
+        instance.changeDirectory(TEST_FOLDER.getPath(), true);
+        instance.writeFile(removeFile);
+        instance.removeObject(removeFile);
+        instance.disconnect();
+    }
+
+    /**
+     * Test of removeFile method, of class OBEXClient.
+     */
+    @Test
+    public void testCreateRemoveFolder() throws Exception {
+        System.out.println("Testing create/remove of folder");
+        instance.connect();
+        OBEXFolder folder = new OBEXFolder("folderToDelete");
+        boolean bb1 = instance.changeDirectory(folder.getPath(), true);
+        OBEXFolder list1 = instance.loadFolderListing();
+        boolean b1 = list1.getChildFolder(folder.getName()) != null;
+
+        boolean bb2 = instance.changeDirectory(folder.getParentFolder().getPath(), true);
+        OBEXFolder list2 = instance.loadFolderListing();
+        boolean b2 = list2.getChildFolder(folder.getName()) != null;
+
+        boolean bb3 = instance.removeObject(folder);
+        OBEXFolder list3 = instance.loadFolderListing();
+
+        boolean b3 = list3.getChildFolder(folder.getName()) != null;
+        instance.disconnect();
+
+        System.out.println(list1);
+        System.out.println(list2);
+        System.out.println(list3);
+        assertTrue(bb1);
+        assertTrue(bb2);
+        assertTrue(bb3);
+        assertFalse(b1);
+        assertTrue(b2);
+        assertFalse(b3);
     }
 
     /**
      * Test of readFile method, of class OBEXClient.
      */
     @Test
-    public void testReadFile() throws Exception {
-//        instance.connect();
-        //
-//        instance.disconnect();
+    public void testReadWriteFile() throws Exception {
+        final OBEXFile writeFile = createFile(512, "readWrite.tst", TEST_FOLDER);
+
+        instance.connect();
+        instance.changeDirectory(TEST_FOLDER.getPath(), false);
+        instance.writeFile(writeFile);
+        OBEXFile readFile = instance.readFile(writeFile.getName());
+        instance.removeObject(readFile);
+        instance.disconnect();
+
+        assertArrayEquals(writeFile.getContents(), readFile.getContents());
     }
 
     /**
@@ -196,16 +221,23 @@ public class OBEXClientTest {
      */
     @Test
     public void testListFolder() throws Exception {
-    }
+        boolean[] testList1 = new boolean[10];
+        instance.connect();
+        instance.changeDirectory(TEST_FOLDER.getPath(), false);
+        for (int i = 0; i < testList1.length; i++) {
+            testList1[i] = instance.writeFile(createFile(1, "testList" + i + ".tst", TEST_FOLDER));
+        }
+        Map<String, OBEXObject> objs = instance.loadFolderListing().getSubobjects();
+        instance.disconnect();
 
-    /**
-     * Test of writeFile method, of class OBEXClient.
-     */
-    @Test
-    public void testWriteFile() throws IOException {
-//        instance.connect();
-        //
-//        instance.disconnect();
+        int i = 0;
+        for (Iterator<OBEXObject> it = objs.values().iterator(); it.hasNext();) {
+            OBEXObject obj = it.next();
+            assertTrue(obj.getName(), obj.getName().equals("testList" + i + ".tst"));
+            i++;
+        }
+        assertTrue(i > 0);
+
     }
 
     /**
@@ -213,6 +245,7 @@ public class OBEXClientTest {
      */
     @Test
     public void testGetMaxPacketLenght() {
+        //no need for testing
     }
 
     /**
@@ -220,6 +253,21 @@ public class OBEXClientTest {
      */
     @Test
     public void testSetMaxPacketLenght() {
+        //no need for testing
+    }
+
+    /**
+     * Test of eraseDisk method, of class OBEXClient.
+     */
+    @Test
+    public void testEraseDisk() throws Exception {
+        instance.connect();
+//        boolean b = instance.eraseDisk();
+        String listing = instance.loadFolderListing().getListing();
+        instance.disconnect();
+//        assertTrue(b);
+        System.out.println(listing);
+
     }
 
     private static OBEXFile createFile(final int size, final String filename, OBEXFolder folder) throws IOException {
@@ -227,11 +275,15 @@ public class OBEXClientTest {
             folder = OBEXFile.ROOT_FOLDER;
         }
         StringBuilder builder = new StringBuilder();
-        while (builder.length() < size) {
-            for (int i = 1; i < 10; i++) {
-                builder.append(i);
+        if (size > 3) {
+            while (builder.length() < size - 3) {
+                for (int i = 1; i < 10; i++) {
+                    builder.append(i);
+                }
             }
         }
+        builder.append("END");
+
         OBEXFile file = new OBEXFile(folder, filename);
         file.setContents(builder.toString().getBytes());
 

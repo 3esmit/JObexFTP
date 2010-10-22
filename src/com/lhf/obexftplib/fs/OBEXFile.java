@@ -64,9 +64,6 @@ public class OBEXFile extends OBEXObject {
         time.setValue(Utility.getTime(getTime()).getBytes());
         hs.add(time);
 
-        Header appParameters = new Header(Header.APP_PARAMETERS);
-        appParameters.setValue(getUserPerm());
-        hs.add(appParameters);
         return hs;
     }
 
@@ -169,15 +166,22 @@ public class OBEXFile extends OBEXObject {
                 try {
                     setContents(header.getValue());
                 } catch (IOException ex) {
+                    ex.printStackTrace();
                 }
                 break;
             case Header.END_OF_BODY:
                 try {
                     setContents(header.getValue());
                 } catch (IOException ex) {
+                    ex.printStackTrace();
                 }
                 setReady();
                 break;
         }
+    }
+
+    @Override
+    protected void onReady() {
+        this.setSize(getContents().length);
     }
 }

@@ -54,8 +54,7 @@ public abstract class OBEXObject extends OutputStream {
 
     public void addResponse(Response res) {
         for (Iterator<Header> it = res.getHeaders(); it.hasNext();) {
-            Header object = it.next();
-            threatHeader(object);
+            threatHeader(it.next());
         }
     }
 
