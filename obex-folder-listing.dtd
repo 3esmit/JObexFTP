@@ -1,0 +1,29 @@
+<!-- DTD for the OBEX Folder-Listing Object -->
+<!ELEMENT folder-listing ( folder | file | parent-folder )* >
+<!ATTLIST folder-listing version CDATA "1.0">
+<!ELEMENT file (#PCDATA)>
+<!ATTLIST file name CDATA #REQUIRED>
+<!ATTLIST file size CDATA #IMPLIED>
+<!ATTLIST file type CDATA #IMPLIED>
+<!ATTLIST file modified CDATA #IMPLIED>
+<!ATTLIST file created CDATA #IMPLIED>
+<!ATTLIST file accessed CDATA #IMPLIED>
+<!ATTLIST file user-perm NMTOKEN #IMPLIED>
+<!ATTLIST file group-perm NMTOKEN #IMPLIED>
+<!ATTLIST file other-perm NMTOKEN #IMPLIED>
+<!ATTLIST file group CDATA #IMPLIED>
+<!ATTLIST file owner CDATA #IMPLIED>
+<!ATTLIST file xml:lang NMTOKEN #IMPLIED>
+<!ELEMENT folder (#PCDATA) >
+<!ATTLIST folder name CDATA #REQUIRED>
+<!ATTLIST folder size CDATA #IMPLIED>
+<!ATTLIST folder modified CDATA #IMPLIED>
+<!ATTLIST folder created CDATA #IMPLIED>
+<!ATTLIST folder accessed CDATA #IMPLIED>
+<!ATTLIST folder user-perm NMTOKEN #IMPLIED>
+<!ATTLIST folder group-perm NMTOKEN #IMPLIED>
+<!ATTLIST folder other-perm NMTOKEN #IMPLIED>
+<!ATTLIST folder group CDATA #IMPLIED>
+<!ATTLIST folder owner CDATA #IMPLIED>
+<!ATTLIST folder xml:lang NMTOKEN #IMPLIED>
+<!ELEMENT parent-folder EMPTY>

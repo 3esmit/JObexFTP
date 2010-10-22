@@ -1,61 +1,85 @@
-	1. About Project
-	----------------
-	What is JObexFTP?
-	JObexFTP is a Java implementation of Obex Client protocol under Siemiens/Cinterion AT specification aimed to work with TC65 and TC65i modules.
-	Its a fully opensource library (and application) to transfer files from/to obex server.
-	You can use it in any J2SE application to enable java communication to module without third party app. You can also use it as a MES in unsupported cinterion plataforms like Linux.
-	It can be easily adapted to similar devices.
+This is README file for JOBEXFTP 2.0
+JOBEXFTP dev homepage: http://www.github.com/3esmit/jobexftp
 
-	2. Dependences
-	--------------
-	This software uses, obviously Java, and RxTx library.
-	RxTx is a native library that helps Serial (and Parallel) communication under Java.
-	Its freely avaliable in http://rxtx.qbang.org/ it also has a debian package that dosent works in modern linux but there is a project to fix that here http://github.com/chrisdew/rxtx
+1. About Project
+What is JObexFTP?
+JObexFTP is a Java implementation of Obex Client protocol under Siemiens/Cinterion AT specification aimed to work with TC65 and TC65i modules.
+Its a fully opensource library (and application) to transfer files from/to obex server.
+You can use it in any J2SE application to enable java communication to module without third party app. You can also use it as a MES in unsupported cinterion plataforms like Linux.
+It can be easily support similar devices.
 
-	3. How to get JObexFTP working?
-	-------------------------------
-	- Download and Install RxTx library. Please follow the instructions detailed in the file you downloaded.
-	- Download or compile JObexFTP.jar
-	- Download emulator shellscript
-	- Put both file together. I recommend it under WTK/bin/ where Windows WTK bins are.
-	- Configure Profile IDE to see the WTK using the emulator shellscript.
-	- Go to console, type 'dmesg | tail', see the output, connect device, type that command again and look out for a new USB device. In my computer it get identified as ttyACM*, but depending your distro it can be ttyUSB* or ttyS*. Once you found, keep that name in mind and edit emulator shellscript, go to first line and change de 'ttyUSB?' to your distro needs, in my case I change to ttyACM?, so the line get like this:
-	ttypath=`ls /dev/ttyACM? | tail -n 1`
-	- Install gtkterm. If you want to use other serial term, change the command in emulator script.
+2. Dependences
+This software uses, obviously Java, and RxTx library.
+RxTx is a native library that helps Serial (and Parallel) communication under Java.
+Its freely avaliable in http://rxtx.qbang.org/ it also has a debian package that dosent works in modern linux but there is a project to fix that here http://github.com/chrisdew/rxtx
 
-	4. Troubleshotting
-	------------------
-	- Check if you installed the RxTx in the right place, maybe you installed under a not used anymore JRE. I recommend you install in all JRE, and also in JDK's JRE, so it will be flawless.
-	- Check if you configured correctaly the ttypath in the emulator script.
-	- Are the two files in the same directory?
-	- Is your IDE sending the right parameters?
-	- If you still could not get it running, send detailed install process and error messages to 3esmit at gmail dot com.
+3. Features
+- Easy and clean source code.
+- Easy API calls to perform FTP operations
+- Follow most of the (IrDA) Object Exchange Protocol
+- Support of connect, setpath, get, put and disconnect operations
+- Easy implementations of new devices (reather then Siemiens/Cinterion)
+- Truely Object Oriented Project
+- Test driven development
+- Event based I/O operations 
 
-	5. Credits
-	-----------
-	- Ondrej Janovskï¿½ <oj@alarex.cz> www.m2marchitect.com
-	- Ricardo Guilherme Schmidt <3esmit@gmail.com> www.lhf-instrumentacao.com
-	- Radu PetriÈ™or <radu.petrisor@safefleet.eu> www.safefleet.eu
-	- Florian ChiÈ™ <florian.chis@scada.ro> www.scada.ro
-	- Lorenzo Patocchi <lorenzo.patocchi@cryms.com>
-	Obex protocol Java implementation by Ondrej Janovski
-	Thanks to all.
+4. What changed from JOBEXFTP 1.0?
+- Full refactoring of code
+- 60% faster read/write ATC and OBEX Op.
+- Main API classes documented in java doc
+- Working just with byte arrays
+- OBEXObject, OBEXFolder and OBEXFile now works
+- Human readable folder listing
+- Easy access to obex information
+- Different levels of debug options
+- Tested, stable and working code
 
+4. Known bugs
+- Despite following the OBEX specs., deleting folders on TC65 dosen't work. (TC65 dont follow the specs.)
+- Sometimes, before some operations, the server directory goes one level up without client requisiton, and client still belives it is in the path.
+- Aborting put operations leaves the file half there.
 
+5. Not implemented yet
+- Interactive mode
+- TCP connection mode
+- Internationalization
+- .deb and .rpm packages
 
+6. Help JOBEXFTP
+If you have information on how fixing bugs or wants to implement new features, please contact me via email. 
+All your help is needed to make this project better.
 
-	Copyright (C) 2010 Ricardo Guilherme Schmidt
+7. License
+This project is licensed in LGPL, please read the license file.
+In summary you can use this code in any commercial application, but any changes/improvement in JOBEXFTP must be shared with the community.
+Please report if you are using JOBEXFTP and give me feedback of your problems and needs, they might be developed.  
 
-	This program is free software: you can redistribute it and/or modify
-	it under the terms of the GNU Lesseer General Public License as published by
-	the Free Software Foundation, either version 3 of the License, or
-	any later version.
+8. Authoring
+This project is managed and mainly developed by Ricardo Guilherme Schmidt <ricardo@lhf.ind.br>
+It uses small parts of OBEX4J, developed by Joey Shen <joey.shen@sun.com>
+And it was first inspired by ObexTool by Ondrej Janovskï <oj@alarex.cz>
 
-	This program is distributed in the hope that it will be useful,
-	but WITHOUT ANY WARRANTY; without even the implied warranty of
-	MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE. See the
-	GNU Lesseer General Public License for more details.
+9. Questions
+You can ask questions about the use and about how the code works or how to make changes on it by the following contact information:
+Ricardo Guilherme Schmidt (work) <ricardo@lhf.ind.br>
+Ricardo Guilherme SChmidt (home) <3esmit@gmail.com>
+Cellphone +55 47 84037215 (Just speak english and portuguese)
 
-	You should have received a copy of the GNU Lesseer General Public License
-	along with this program. If not, see <http://www.gnu.org/licenses/>.
+10. Other
+If you use JOBEXFTP keep in touch with it updates, and help development. 
+This project dosen't ask for money donations, but asks for your bug reports, feedback and developing help.
+Use GitHub.com tools or email-me to feedback. 
 
+11. Disclaimer
+Copyright 2010 Ricardo Guilherme Schmidt
+
+THIS SOFTWARE IS PROVIDED "AS IS" AND ANY EXPRESS OR IMPLIED WARRANTIES, 
+INCLUDING, BUT NOT LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND 
+FITNESS FOR A PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE AUTHOR 
+OR CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, 
+EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, 
+PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR
+BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER
+IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE 
+POSSIBILITY OF SUCH DAMAGE.
