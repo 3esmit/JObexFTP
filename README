@@ -35,11 +35,13 @@ Its freely avaliable in http://rxtx.qbang.org/ it also has a debian package that
 - Tested, stable and working code
 
 4. Known bugs
-- Despite following the OBEX specs., deleting folders on TC65 dosen't work. (TC65 dont follow the specs.)
 - Sometimes, before some operations, the server directory goes one level up without client requisiton, and client still belives it is in the path.
 - Aborting put operations leaves the file half there.
 
 5. Not implemented yet
+- Setting user/group permissions
+- Setting files and folder attributes
+- Getting device memory flash properties
 - Interactive mode
 - TCP connection mode
 - Internationalization
