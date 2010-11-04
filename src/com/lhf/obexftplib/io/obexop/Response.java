@@ -19,60 +19,68 @@
  */
 package com.lhf.obexftplib.io.obexop;
 
-
 /**
  * abstract class for all OBEX responses
  * 
  * @author joey
  */
 public abstract class Response extends Packet {
-    public static final byte SUCCESS = (byte)0x20;
-    public static final byte CONTINUE = (byte)0x10;
-    public static final byte CREATED = (byte)0x21;
-    public static final byte BADREQUEST = (byte)0x40;
-    
-    public static final byte FINAL = (byte)0x80;
-    
+
+    public static final byte SUCCESS = (byte) 0x20;
+    public static final byte CONTINUE = (byte) 0x10;
+    public static final byte CREATED = (byte) 0x21;
+    public static final byte BADREQUEST = (byte) 0x40;
+    public static final byte FINAL = (byte) 0x80;
     protected byte respcode;
 
     /**
      * get the response type
      */
     public byte getType() {
-        return respcode;   
+        return respcode;
     }
-    
+
     /**
      * set the response type
      * 
      * @param atype
      */
-    public void setType(byte atype) {
-    	respcode = atype;
+    public void setType(final byte atype) {
+        respcode = atype;
     }
-    
+
     /**
      * set the final bit of the connect response
      */
     public void setFinal() {
-    	respcode |= FINAL;
+        respcode |= FINAL;
     }
-    
+
     /**
      * detect whether the final bit has been set
      * 
      * @return true if the final bit was set, otherwise false
      */
     public boolean isFinal() {
-    	return ((respcode & FINAL) == FINAL);
+        return ((respcode & FINAL) == FINAL);
     }
-    
-    public boolean equals(Object obj) {
+
+    @Override
+    public boolean equals(final Object obj) {
         if (!super.equals(obj)) {
             return false;
         }
-        
-        Response resp = (Response)obj;
-        return respcode == resp.getType();
+        if (obj instanceof Response) {
+            Response resp = (Response) obj;
+            return respcode == resp.getType();
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = super.hashCode();
+        hash = 41 * hash + this.respcode;
+        return hash;
     }
 }

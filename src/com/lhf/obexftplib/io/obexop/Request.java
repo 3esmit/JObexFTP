@@ -26,17 +26,16 @@ package com.lhf.obexftplib.io.obexop;
  * @author Joey Shen
  */
 public abstract class Request extends Packet {
-	public static final byte CONNECT = (byte)0x80;
-    public static final byte DISCONNECT = (byte)0x81;
-    public static final byte PUT = (byte)0x02;
-    public static final byte GET = (byte)0x03;
-    public static final byte SETPATH = (byte)0x85;
-    public static final byte SETPATH2 = (byte)0x86;
-    public static final byte SESSION = (byte)0x87;
-    public static final byte ABORT = (byte)0xFF;
-    
-    public static final byte FINAL = (byte)0x80;
-    
+
+    public static final byte CONNECT = (byte) 0x80;
+    public static final byte DISCONNECT = (byte) 0x81;
+    public static final byte PUT = (byte) 0x02;
+    public static final byte GET = (byte) 0x03;
+    public static final byte SETPATH = (byte) 0x85;
+    public static final byte SETPATH2 = (byte) 0x86;
+    public static final byte SESSION = (byte) 0x87;
+    public static final byte ABORT = (byte) 0xFF;
+    public static final byte FINAL = (byte) 0x80;
     protected byte opcode;
 
     /**
@@ -44,53 +43,63 @@ public abstract class Request extends Packet {
      * 
      * @param type
      */
-    public void setType(byte type) {
-    	opcode = type;
+    public void setType(final byte type) {
+        opcode = type;
     }
-    
+
     /**
      * get request type
      * 
      * @return type of the request
      */
     public byte getType() {
-    	return opcode;
+        return opcode;
     }
-    
+
     /**
      * set the final bit of the request
      */
     public void setFinal() {
-    	opcode |= FINAL;
+        opcode |= FINAL;
     }
-    
+
     /**
      * detect whether the request is the final packet
      * 
      * @return true if the final bit was set
      */
     public boolean isFinal() {
-    	return ((opcode & FINAL) == FINAL);
+        return ((opcode & FINAL) == FINAL);
     }
-    
+
     /**
      * get Header Value
      * 
      * @return header value byte array
      */
-    public byte[] getHeaderValue(byte headerType) {
-    	return headers.getHeaderValue(headerType);
+    @Override
+    public byte[] getHeaderValue(final byte headerType) {
+        return headers.getHeaderValue(headerType);
     }
-    
-    public boolean equals(Object obj) {
-        if (!super.equals(obj))
-            return false;
-        if (!Request.class.isInstance(obj)) {
+
+    @Override
+    public boolean equals(final Object obj) {
+        if (!super.equals(obj)) {
             return false;
         }
-        
-        Request req = (Request)obj;
-        
-        return opcode == req.getType(); 
+        if (obj instanceof Request) {
+
+            Request req = (Request) obj;
+
+            return opcode == req.getType();
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = super.hashCode();
+        hash = 43 * hash + this.opcode;
+        return hash;
     }
 }

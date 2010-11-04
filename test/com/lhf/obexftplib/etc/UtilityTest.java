@@ -5,6 +5,7 @@
 package com.lhf.obexftplib.etc;
 
 import com.lhf.obexftplib.etc.Utility;
+import com.lhf.obexftplib.fs.OBEXFolder;
 import com.lhf.obexftplib.io.obexop.AbortResponse;
 import com.lhf.obexftplib.io.obexop.ConnectResponse;
 import com.lhf.obexftplib.io.obexop.DisconnectResponse;
@@ -551,7 +552,6 @@ public class UtilityTest {
      */
     @Test
     public void testHumanReadableByteCount() {
-        System.out.println("humanReadableByteCount");
         long bytes = 0L;
         boolean si = false;
         String expResult = "0 B";
@@ -595,5 +595,55 @@ public class UtilityTest {
     @Test
     public void testListingFormat() {
         //no need of testing
+    }
+
+    /**
+     * Test of createSimbolicFolderTree method, of class Utility.
+     */
+    @Test
+    public void testCreateSimbolicFolderTree() {
+        String absolutePath = "a:/a/really/big/path/to/auto/create";
+        OBEXFolder result = Utility.createSimbolicFolderTree(absolutePath);
+        assertEquals(absolutePath, result.getPath());
+    }
+
+    /**
+     * Test of getTime method, of class Utility.
+     */
+    @Test
+    public void testGetTime_Date() {
+
+    }
+
+    /**
+     * Test of buildPerm method, of class Utility.
+     */
+    @Test
+    public void testBuildPerm_4args() {
+
+    }
+
+    /**
+     * Test of bytesToName method, of class Utility.
+     */
+    @Test
+    public void testBytesToName() {
+
+    }
+
+    /**
+     * Test of buildPerm method, of class Utility.
+     */
+    @Test
+    public void testBuildPerm_String_byte() {
+
+    }
+
+    /**
+     * Test of getTime method, of class Utility.
+     */
+    @Test
+    public void testGetTime_String() {
+
     }
 }

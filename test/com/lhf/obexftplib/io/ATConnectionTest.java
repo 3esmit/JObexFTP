@@ -92,62 +92,6 @@ public class ATConnectionTest {
 
     }
 
-    /**
-     * Test of setBaudRate method, of class JObexProtocol.
-     */
-    @Test
-    public void testSetBaudRate() throws Exception {
-        int baudRate = 57600;
-
-        instance.setBaudRate(baudRate);
-        instance.setConnMode(ATConnection.MODE_AT);
-        assertEquals(instance.getSerialPort().getBaudRate(), baudRate);
-        instance.setConnMode(ATConnection.MODE_DISCONNECTED);
-
-    }
-
-    /**
-     * Test of getSerialPort method, of class JObexProtocol.
-     */
-    @Test
-    public void testGetSerialPort() throws Exception {
-
-        SerialPort result = instance.getSerialPort();
-        assertNull(result);
-
-        instance.setConnMode(ATConnection.MODE_AT);
-
-        result = instance.getSerialPort();
-        assertNotNull(result);
-        instance.setConnMode(ATConnection.MODE_DISCONNECTED);
-    }
-
-    /**
-     * Test of setFlowControl method, of class JObexProtocol.
-     */
-    @Test
-    public void testSetFlowControl() throws Exception {
-        byte flowControl = ATConnection.FLOW_NONE;
-        instance.setFlowControl(flowControl);
-        instance.setConnMode(ATConnection.MODE_AT);
-        assertTrue(instance.getSerialPort().getFlowControlMode() == SerialPort.FLOWCONTROL_NONE);
-        instance.setConnMode(ATConnection.MODE_DISCONNECTED);
-
-
-        flowControl = ATConnection.FLOW_XONXOFF;
-        instance.setFlowControl(flowControl);
-        instance.setConnMode(ATConnection.MODE_AT);
-
-        assertTrue(instance.getSerialPort().getFlowControlMode() == (SerialPort.FLOWCONTROL_XONXOFF_IN | SerialPort.FLOWCONTROL_XONXOFF_OUT));
-        instance.setConnMode(ATConnection.MODE_DISCONNECTED);
-
-
-        flowControl = ATConnection.FLOW_RTSCTS;
-        instance.setFlowControl(flowControl);
-        instance.setConnMode(ATConnection.MODE_AT);
-        assertTrue(instance.getSerialPort().getFlowControlMode() == (SerialPort.FLOWCONTROL_RTSCTS_OUT | SerialPort.FLOWCONTROL_RTSCTS_IN));
-        instance.setConnMode(ATConnection.MODE_DISCONNECTED);
-    }
 
     /**
      * Test of setConnMode method, of class ATConnection.

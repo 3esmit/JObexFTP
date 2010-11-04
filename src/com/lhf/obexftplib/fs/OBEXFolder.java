@@ -37,42 +37,48 @@ import java.util.logging.Logger;
 import javax.xml.parsers.ParserConfigurationException;
 import javax.xml.parsers.SAXParser;
 import javax.xml.parsers.SAXParserFactory;
+import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
 /**
- *
+ * An obex folder object representation in java.
  * @author Ricardo Guilherme Schmidt <ricardo@lhf.ind.br>
  */
 public final class OBEXFolder extends OBEXObject {
 
     private String path = null;
-    private Map<String, OBEXObject> subobjects = new TreeMap<String, OBEXObject>();
+    private final Map<String, OBEXObject> subobjects = new TreeMap<String, OBEXObject>();
     private static final OBEXFolderListingParser PARSER = new OBEXFolderListingParser();
 
-    public OBEXFolder(OBEXFolder parentFolder, String filename) {
+    public OBEXFolder(final OBEXFolder parentFolder, final String filename) {
         super(parentFolder);
         setName(filename);
     }
 
-    public OBEXFolder(String filename) {
+    public OBEXFolder(final String filename) {
         this(ROOT_FOLDER, filename);
     }
 
+    /**
+     * Builds the path string based in the parentfolder and in this folder.
+     * @return
+     */
     @Override
     public String getPath() {
-        if (path != null) {
-            return path + "/" + name;
-        } else if (getParentFolder() == null) {
-            return name;
-        } else {
-            return getParentFolder().getPath() + "/" + name;
+        if (path == null) {
+            if (getParentFolder() == null) {
+                path = "";
+            } else {
+                path = getParentFolder().getPath() + "/";
+            }
         }
+        return path + name;
     }
 
-    public void add(OBEXObject object) {
+    public void add(final OBEXObject object) {
         subobjects.put(object.name, object);
     }
 
@@ -80,7 +86,7 @@ public final class OBEXFolder extends OBEXObject {
         return subobjects;
     }
 
-    public OBEXFolder getChildFolder(String name) {
+    public OBEXFolder getChildFolder(final String name) {
         OBEXObject obj = subobjects.get(name);
         if (obj != null && obj instanceof OBEXFolder) {
             return (OBEXFolder) obj;
@@ -88,7 +94,7 @@ public final class OBEXFolder extends OBEXObject {
         return null;
     }
 
-    public OBEXFile getChildFile(String name) {
+    public OBEXFile getChildFile(final String name) {
         OBEXObject obj = subobjects.get(name);
         if (obj != null && obj instanceof OBEXFolder) {
             return (OBEXFile) obj;
@@ -97,12 +103,20 @@ public final class OBEXFolder extends OBEXObject {
     }
 
     public OBEXFolder addFolder(String filename) {
+        filename = filename.replace('/', ' ').trim();
+        if (filename.isEmpty()) {
+            return this;
+        }
         OBEXFolder folder = new OBEXFolder(this, filename);
         add(folder);
         return folder;
     }
 
     public OBEXFile addFile(String filename) {
+        filename = filename.replace('/', ' ').trim();
+        if (filename.isEmpty()) {
+            return null;
+        }
         OBEXFile file = new OBEXFile(filename);
         add(file);
         return file;
@@ -137,7 +151,7 @@ public final class OBEXFolder extends OBEXObject {
     }
 
     @Override
-    protected void threatHeader(Header header) {
+    protected void threatHeader(final Header header) {
         switch (header.getId()) {
             case Header.NAME:
                 setName(header.getValue());
@@ -176,6 +190,22 @@ public final class OBEXFolder extends OBEXObject {
     @Override
     public String getSizeString() {
         return "<DIR>";
+    }
+
+    @Override
+    public boolean equals(Object compobj) {
+        if (compobj instanceof OBEXFolder) {
+            OBEXFolder compfol = (OBEXFolder) compobj;
+            return compfol.getPath().equalsIgnoreCase(this.getPath());
+        }
+        return false;
+    }
+
+    @Override
+    public int hashCode() {
+        int hash = 7;
+        hash = 73 * hash + (this.getPath() != null ? this.getPath().hashCode() : 0);
+        return hash;
     }
 }
 
@@ -235,7 +265,7 @@ class OBEXFolderListingParser extends DefaultHandler {
     }
 
     @Override
-    public void startElement(String uri, String localName, String qName, org.xml.sax.Attributes attributes) throws SAXException {
+    public void startElement(final String uri, final String localName, final String qName, final Attributes attributes) throws SAXException {
         OBEXObject childObject = null;
         if (qName.equalsIgnoreCase("folder")) {
             childObject = new OBEXFolder(folder, attributes.getValue("name"));

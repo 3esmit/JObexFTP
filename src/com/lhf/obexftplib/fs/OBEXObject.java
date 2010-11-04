@@ -20,25 +20,22 @@
 package com.lhf.obexftplib.fs;
 
 import com.lhf.obexftplib.etc.Utility;
-import com.lhf.obexftplib.io.obexop.GetRequest;
 import com.lhf.obexftplib.io.obexop.Header;
 import com.lhf.obexftplib.io.obexop.Response;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.OutputStream;
-import java.text.DateFormat;
 import java.util.Arrays;
-import java.util.Calendar;
 import java.util.Date;
 import java.util.Iterator;
 
 /**
- *
+ * Abstract class containing common attributes and behavior of OBEXFile and OBEXFolder.
  * @author Ricardo Guilherme Schmidt <ricardo@lhf.ind.br>
  */
 public abstract class OBEXObject extends OutputStream {
 
-    public static final OBEXFolder ROOT_FOLDER = new OBEXFolder(null, "a:/");
+    public static final OBEXFolder ROOT_FOLDER = new OBEXFolder(null, "a:");
     private byte[] binaryName = {}, groupPerm = {'\"', '\"'}, userPerm = {'\"', '\"'};
     private Date modified = null, time = null;
     protected String name = "";
@@ -48,23 +45,24 @@ public abstract class OBEXObject extends OutputStream {
 
     public abstract String getPath();
 
-    public OBEXObject(OBEXFolder parentFolder) {
+    public OBEXObject(final OBEXFolder parentFolder) {
         this.parentFolder = parentFolder;
     }
 
-    public void addResponse(Response res) {
+    public void addResponse(final Response res) {
         for (Iterator<Header> it = res.getHeaders(); it.hasNext();) {
             threatHeader(it.next());
         }
     }
 
-    public void addResponses(Response[] res) {
+    public void addResponses(final Response[] res) {
+        reset();
         for (int i = 0; i < res.length; i++) {
             addResponse(res[i]);
         }
     }
 
-    protected abstract void threatHeader(Header header);
+    protected abstract void threatHeader(final Header header);
 
     /**
      * @return the name
@@ -84,7 +82,7 @@ public abstract class OBEXObject extends OutputStream {
     /**
      * @param name the name to set
      */
-    public void setName(String name) {
+    public void setName(final String name) {
         this.name = name;
         this.binaryName = Utility.nameToBytes(name);
     }
@@ -92,7 +90,7 @@ public abstract class OBEXObject extends OutputStream {
     /**
      * @param name the name to set
      */
-    public void setName(byte[] name) {
+    public void setName(final byte[] name) {
         this.binaryName = name;
         this.name = Utility.bytesToName(name);
     }
@@ -107,7 +105,7 @@ public abstract class OBEXObject extends OutputStream {
     /**
      * @param modified the modified to set
      */
-    public void setModified(Date modified) {
+    public void setModified(final Date modified) {
         this.modified = modified;
     }
 
@@ -121,11 +119,11 @@ public abstract class OBEXObject extends OutputStream {
     /**
      * @param userPerm the userPerm to set
      */
-    public void setUserPerm(boolean read, boolean write, boolean delete) {
+    public void setUserPerm(final boolean read, final boolean write, final boolean delete) {
         this.userPerm = Utility.buildPerm(read, write, delete, (byte) 0x38);
     }
 
-    public void setUserPerm(String value) {
+    public void setUserPerm(final String value) {
         if (value == null) {
             return;
         }
@@ -143,11 +141,11 @@ public abstract class OBEXObject extends OutputStream {
      * TODO: Find the correct groupperm byte (its not 0x38) and add it at OBEXFile#getHeaderSet().
      * @param groupPerm the groupPerm to set
      */
-    public void setGroupPerm(boolean read, boolean write, boolean delete) {
+    public void setGroupPerm(final boolean read, final boolean write, final boolean delete) {
         this.groupPerm = Utility.buildPerm(read, write, delete, (byte) 0x38);
     }
 
-    public void setGroupPerm(String value) {
+    public void setGroupPerm(final String value) {
         if (value == null) {
             return;
         }
@@ -173,19 +171,19 @@ public abstract class OBEXObject extends OutputStream {
     protected void onReset() {
     }
 
-    public void setContents(byte[] contents) throws IOException {
+    public void setContents(final byte[] contents) throws IOException {
         if (endOfBody) {
             reset();
         }
         appendContent(contents);
     }
 
-    private void appendContent(byte[] content) throws IOException {
+    private void appendContent(final byte[] content) throws IOException {
         this.contents.write(content);
     }
 
     @Override
-    public void write(int b) throws IOException {
+    public void write(final int b) throws IOException {
         this.contents.write((char) b);
     }
 
@@ -202,11 +200,11 @@ public abstract class OBEXObject extends OutputStream {
     /**
      * @param time the time to set
      */
-    public void setTime(Date time) {
+    public void setTime(final Date time) {
         this.time = time;
     }
 
-    public void setTime(String value) {
+    public void setTime(final String value) {
         if (value == null) {
             return;
         }
@@ -220,13 +218,6 @@ public abstract class OBEXObject extends OutputStream {
         return parentFolder;
     }
 
-    /**
-     * @param parentFolder the parentFolder to set
-     */
-    private void setParentFolder(OBEXFolder parentFolder) {
-        this.parentFolder = parentFolder;
-    }
-
     public final void setReady() {
         this.endOfBody = true;
         onReady();
@@ -236,7 +227,7 @@ public abstract class OBEXObject extends OutputStream {
     }
 
     @Override
-    public boolean equals(Object compobj) {
+    public boolean equals(final Object compobj) {
         if (compobj instanceof OBEXObject) {
             OBEXObject obj = (OBEXObject) compobj;
             return (this.modified == obj.modified) && (this.time == obj.time) && Utility.compareBytes(this.binaryName, obj.binaryName);

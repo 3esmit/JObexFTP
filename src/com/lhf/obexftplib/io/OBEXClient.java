@@ -48,14 +48,14 @@ public class OBEXClient {
     private int maxPacketLenght = 600;
     private boolean hasIncomingPacket;
     private boolean connected;
-    private ATConnection conn;
+    private final ATConnection conn;
     private OutputStream os;
 
     /**
      * Creates a new instance of OBEXClient. ATConnection is an needed class to control de I/O.
      * @param conn
      */
-    public OBEXClient(ATConnection conn) {
+    public OBEXClient(final ATConnection conn) {
         this.conn = conn;
     }
 
@@ -75,7 +75,7 @@ public class OBEXClient {
         this.conn.addConnectionModeListener(eventListener);
         this.conn.addDataEventListener(eventListener);
         currentFolder = OBEXObject.ROOT_FOLDER;
-        currentFolder.setName(device.getRootFolder());
+        getCurrentFolder().setName(device.getRootFolder());
         Request req = new ConnectRequest();
         Header target = new Header(Header.TARGET);
         target.setValue(device.getFsUuid());
@@ -144,11 +144,11 @@ public class OBEXClient {
 
     /**
      * Removes a file with the name as setted in OBEXFile, in the current directory.
-     * This method is equivalent to removeFile(OBEXFile.getName());
+     * This method is equivalent to removeFile(OBEXFile.getBinaryName());
      * @param file The object containing the name.
      * @return true if successful operation.
      */
-    public boolean removeObject(OBEXObject file) throws IOException {
+    public boolean removeObject(final OBEXObject file) throws IOException {
         return removeObject(file.getBinaryName());
     }
 
@@ -157,7 +157,7 @@ public class OBEXClient {
      * @param filename the name of the file to delete
      * @return true if successful operation.
      */
-    public boolean removeObject(byte[] filename) throws IOException {
+    public boolean removeObject(final byte[] filename) throws IOException {
         logger.log(Level.FINEST, "Removing object {0}", filename);
 
         PutRequest req = new PutRequest();
@@ -172,19 +172,39 @@ public class OBEXClient {
     }
 
     /**
+     * If OBEXObject is a folder, goes in it, if OBEXObject is a file, change dir to parent folder.
+     * @param object the directory to move in, or the file to get in the parent folder dir.
+     * @param create if is to create the dirs in path when they are not existent
+     * @return true if change dir was sucess full
+     * @throws IOException
+     * @see OBEXClient#changeDirectory(java.lang.String, boolean) 
+     */
+    public boolean changeDirectory(final OBEXObject object, final boolean create) throws IOException {
+        String path;
+        if (object instanceof OBEXFolder) {
+            path = object.getPath();
+        } else {
+            path = object.getParentFolder().getPath();
+        }
+        return changeDirectory(path, create);
+
+    }
+
+    /**
      * Method used to change dirs and make dirs.
      * @param path the desired path
      * @param create if is to create unexistents folders in path
      * @return true if operation was successful. When choosen not to create folders, will return false if some of the folders in path does not exists.
      * @throws IOException if an IO error occurs.
+     * @see OBEXClient#changeDirectory(com.lhf.obexftplib.fs.OBEXObject)
      */
-    public boolean changeDirectory(String path, boolean create) throws IOException {
+    public boolean changeDirectory(String path, final boolean create) throws IOException {
         boolean success = true;
         path = Utility.preparePath(path); //prepare path to help users who havent read the docs.
         if (path.startsWith("a:")) { //if changeDir path is absolute
-            path = Utility.getRelativePath(path, currentFolder.getPath()); // now is absolute (:
+            path = Utility.getRelativePath(path, getCurrentFolder().getPath()); // now is absolute (:
         }
-        if (currentFolder.getPath().equalsIgnoreCase(path)) {
+        if (getCurrentFolder().getPath().equalsIgnoreCase(path)) {
             return true;
         }
         String pathList[] = path.split("/");
@@ -196,22 +216,31 @@ public class OBEXClient {
 
     /**
      * Downloads the requested filename from the current folder.
+     * Equivalent to readFile(new OBEXFile(getCurrentFolder(), filename));
      * @param filename
      * @return the file contents.
      * @throws IOException
      */
-    public OBEXFile readFile(String filename) throws IOException {
+    public OBEXFile readFile(final String filename) throws IOException {
+        return readFile(new OBEXFile(getCurrentFolder(), filename));
+    }
+
+    /**
+     * Moves to file folder, and reads the file.
+     * @param file The file to be filledup with data
+     * @return the filled file
+     * @throws IOException if an IO error occurs
+     */
+    public OBEXFile readFile(final OBEXFile file) throws IOException {
         GetRequest request = new GetRequest();
         request.setFinal();
         Header type = new Header(Header.NAME);
-        type.setValue(Utility.nameToBytes(filename));
+        type.setValue(file.getBinaryName());
         request.addHeader(type);
-        OBEXFile file = new OBEXFile(currentFolder, filename);
         file.addResponses(getAll(request));
         return file;
     }
 
-    //
     /**
      * Gets the "x-obex/folder-listing" object of the current folder, that represents the folder listing in XML.
      * @return a byte array containing the xml
@@ -223,25 +252,26 @@ public class OBEXClient {
         Header type = new Header(Header.TYPE);
         type.setValue(device.getLsName());
         request.addHeader(type);
-        currentFolder.addResponses(getAll(request));
-        return currentFolder;
+        getCurrentFolder().addResponses(getAll(request));
+        return getCurrentFolder();
     }
 
     /**
-     * Writes to the end of a file, if file not exists, it will automatically create it. JOBEXFile contains the name and the size
+     * Writes to the end of a file, if file not exists, it will automatically create it. 
+     * JOBEXFile contains the name and the size, and the folder path.
+     * If folder path specified does not exists, it will be automatically created.
      * @param file
      * @return true if operation was successful.
      */
-    public boolean writeFile(OBEXFile file) throws IOException {
+    public boolean writeFile(final OBEXFile file) throws IOException {
         PutRequest req = new PutRequest(file.getHeaderSet());
         PutResponse res = new PutResponse(Response.BADREQUEST);
         Header body;
-
-        byte[] contents = file.getContents();
-        int toRead, read = 0, size = maxPacketLenght - req.getPacketLength();
+        InputStream is = file.getInputStream();
+        int toRead;
         do {
-            int ava = contents.length - read;
-            byte[] b;
+            int size = maxPacketLenght - req.getPacketLength();
+            int ava = is.available();
             if (ava < size + 3) {
                 toRead = ava;
                 body = new Header(Header.END_OF_BODY);
@@ -250,8 +280,8 @@ public class OBEXClient {
                 toRead = size - 3;
                 body = new Header(Header.BODY);
             }
-            b = Utility.getBytes(contents, read, toRead);
-            read += toRead;
+            byte[] b = new byte[toRead];
+            is.read(b);
             body.setValue(b);
             req.addHeader(body);
             res = put(req);
@@ -267,7 +297,7 @@ public class OBEXClient {
      * @return the put response or null if timedout.
      * @throws IOException if an io error occurs.
      */
-    private PutResponse put(PutRequest req) throws IOException {
+    private PutResponse put(final PutRequest req) throws IOException {
         sendPacketAndWait(req, TIMEOUT);
         if (hasIncomingPacket) {
             return new PutResponse(incomingData.pullData());
@@ -282,30 +312,33 @@ public class OBEXClient {
      * @return a boolean indicating true for successful operation
      * @throws IOException
      */
-    private boolean setPath(String folder, boolean create) throws IOException {
+    private boolean setPath(final String folder, final boolean create) throws IOException {
         boolean success = false;
         SetPathRequest req = new SetPathRequest();
         if (folder != null) {
-            logger.log(Level.FINEST, "Setting path to {0}", folder);
+            if (folder.isEmpty()) {
+                return true;
+            }
+            logger.log(Level.FINER, "Setting path to {0}", folder);
             Header name = new Header(Header.NAME);
             name.setValue(Utility.nameToBytes(folder));
             req.addHeader(name);
             req.setFlags(create ? 0x00 : (byte) 0x02);
         } else {
-            logger.log(Level.FINEST, "Setting path to parent folder.");
+            logger.log(Level.FINER, "Setting path to parent folder.");
             req.setFlags((byte) 0x03);
         }
         sendPacketAndWait(req, 500);
         if (hasIncomingPacket) {
             if (incomingData.pullData()[0] == (byte) 0xA0) {
-                logger.log(Level.FINER, "Path setted.");
+                logger.log(Level.FINEST, "Path setted.");
                 success = true;
             }
         }
         return success;
     }
 
-    private GetResponse get(GetRequest request) throws IOException {
+    private GetResponse get(final GetRequest request) throws IOException {
         sendPacketAndWait(request, TIMEOUT);
         if (hasIncomingPacket) {
             return new GetResponse(incomingData.pullData());
@@ -339,7 +372,7 @@ public class OBEXClient {
      * @param pkt The packet to be sent.
      * @throws IOException if an IO error occurs
      */
-    private synchronized void sendPacket(Packet pkt) throws IOException {
+    private synchronized void sendPacket(final Packet pkt) throws IOException {
         logger.log(Level.FINEST, "Sending {0}", Utility.dumpBytes(pkt.toBytes()));
         os.write(pkt.toBytes());
     }
@@ -350,7 +383,7 @@ public class OBEXClient {
      * @param timeout the timeout case the server does not answer.
      * @throws IOException
      */
-    private void sendPacketAndWait(Packet pkt, int timeout) throws IOException {
+    private void sendPacketAndWait(final Packet pkt, final int timeout) throws IOException {
         synchronized (holder) {
             sendPacket(pkt);
             try {
@@ -367,22 +400,29 @@ public class OBEXClient {
      * @param folderName
      * @return true if operation was successful
      */
-    private boolean setFolder(String folderName, boolean create) throws IOException {
+    private boolean setFolder(String folderName, final boolean create) throws IOException {
         if (folderName.equals("..")) {
             folderName = null;
         }
         boolean success = setPath(folderName, create);
         if (success) {
             if (folderName == null) {
-                currentFolder = currentFolder.getParentFolder();
+                currentFolder = getCurrentFolder().getParentFolder();
             } else {
-                OBEXFolder childFolder = currentFolder.getChildFolder(folderName);
-                currentFolder = childFolder == null ? new OBEXFolder(currentFolder, folderName) : childFolder;
+                OBEXFolder childFolder = getCurrentFolder().getChildFolder(folderName);
+                currentFolder = childFolder == null ? new OBEXFolder(getCurrentFolder(), folderName) : childFolder;
             }
         }
-        logger.log(Level.FINE, "Now in folder {0}", currentFolder.getPath());
+        logger.log(Level.FINE, "Now in folder {0}", getCurrentFolder().getPath());
 
         return success;
+    }
+
+    /**
+     * @return the currentFolder
+     */
+    public OBEXFolder getCurrentFolder() {
+        return currentFolder;
     }
 
     private class ObexEventListener implements DataEventListener, ConnectionModeListener {
@@ -391,7 +431,7 @@ public class OBEXClient {
          * Method to recieve OBEXEvents from ATConnection.
          * @param event the event.
          */
-        public void DataEvent(byte[] event) {
+        public void DataEvent(final byte[] event) {
             synchronized (holder) {
                 incomingData.pushData(event);
                 hasIncomingPacket = incomingData.isReady();
@@ -401,7 +441,7 @@ public class OBEXClient {
             }
         }
 
-        public void update(int mode) {
+        public void update(final int mode) {
             if (mode != ATConnection.MODE_DATA) {
                 try {
                     logger.log(Level.WARNING, "Datamode to close unexpectedly");
@@ -424,7 +464,7 @@ public class OBEXClient {
     /**
      * @param maxPacketLenght the maxPacketLenght to set
      */
-    public void setMaxPacketLenght(int maxPacketLenght) {
+    public void setMaxPacketLenght(final int maxPacketLenght) {
         this.maxPacketLenght = maxPacketLenght;
     }
 }
@@ -448,7 +488,7 @@ class OBEXData {
         return data.length;
     }
 
-    public void pushData(byte[] newData) {
+    public void pushData(final byte[] newData) {
         Utility.getLogger().log(Level.FINEST, "Pushed data {0}", Utility.dumpBytes(newData));
         if (data == null) {
             data = newData;

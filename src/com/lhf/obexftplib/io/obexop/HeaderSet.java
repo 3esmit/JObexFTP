@@ -38,7 +38,7 @@ public final class HeaderSet<T> extends ArrayList<Header> {
      * 
      * @param bytes
      */
-    public HeaderSet(byte[] bytes) {
+    public HeaderSet(final byte[] bytes) {
         rawdata = bytes;
         parseHeaders(rawdata);
     }
@@ -46,7 +46,7 @@ public final class HeaderSet<T> extends ArrayList<Header> {
     /**
      * set all the headers contained in the HeaderSet
      */
-    protected void parseHeaders(byte[] data) {
+    protected void parseHeaders(final byte[] data) {
         int bytesleft = data.length;
         int offset = 0;
         int headerlength = 0;
@@ -77,7 +77,7 @@ public final class HeaderSet<T> extends ArrayList<Header> {
      * @param id the header id which are interested
      * @return header value related to the header whose id was input
      */
-    public byte[] getHeaderValue(byte id) {
+    public byte[] getHeaderValue(final byte id) {
         Header header = getHeader(id);
         if (header == null) {
             return null;
@@ -92,7 +92,7 @@ public final class HeaderSet<T> extends ArrayList<Header> {
      * @param id id of the header wanted
      * @return the header wanted
      */
-    public Header getHeader(byte id) {
+    public Header getHeader(final byte id) {
         Iterator iter = this.iterator();
         if (iter == null) {
             return null;   
@@ -122,6 +122,7 @@ public final class HeaderSet<T> extends ArrayList<Header> {
         return length;
     }
     
+    @Override
     public String toString() {
         String result = "";
         Iterator iter = this.iterator();

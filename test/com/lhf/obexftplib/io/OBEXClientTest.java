@@ -48,7 +48,7 @@ public class OBEXClientTest {
             CommPortIdentifier commPortIdentifier = e.nextElement();
             IDENT.add(commPortIdentifier.getName());
         }
-        Utility.configLogger(Level.FINER);
+        Utility.configLogger(Level.FINEST);
         selectedTestPort = CommPortIdentifier.getPortIdentifier((String) JOptionPane.showInputDialog(null, "WARNING:\nThis test is going to\nerase all the contents\nof the following device:\n", "TDD: Select CommPort to Test", 0, null, IDENT.toArray(), 0));
         conn = new ATConnection(selectedTestPort);
         conn.setConnMode(ATConnection.MODE_DATA);
@@ -204,7 +204,7 @@ public class OBEXClientTest {
      */
     @Test
     public void testReadWriteFile() throws Exception {
-        final OBEXFile writeFile = createFile(512, "readWrite.tst", TEST_FOLDER);
+        final OBEXFile writeFile = createFile(110132, "readWrite.tst", TEST_FOLDER);
 
         instance.connect();
         instance.changeDirectory(TEST_FOLDER.getPath(), false);

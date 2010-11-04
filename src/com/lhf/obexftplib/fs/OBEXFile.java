@@ -22,7 +22,6 @@ package com.lhf.obexftplib.fs;
 import com.lhf.obexftplib.etc.Utility;
 import com.lhf.obexftplib.io.obexop.Header;
 import com.lhf.obexftplib.io.obexop.HeaderSet;
-import com.lhf.obexftplib.io.obexop.PutRequest;
 import java.io.ByteArrayInputStream;
 import java.io.IOException;
 import java.io.InputStream;
@@ -33,19 +32,19 @@ import java.util.Arrays;
  * Get operations usually fill all the available data in server, and set the contents as String, that can be obtained with getContents() or getInputStream();
  * @author Ricardo Guilherme Schmidt <ricardo@lhf.ind.br>
  */
-public class OBEXFile extends OBEXObject {
+public final class OBEXFile extends OBEXObject {
 
     private byte[] size;
     private OBEXFolder parentFolder;
     private InputStream inputStream;
     private String path = null;
 
-    public OBEXFile(OBEXFolder parentFolder, String filename) {
+    public OBEXFile(final OBEXFolder parentFolder, final String filename) {
         super(parentFolder);
         setName(filename);
     }
 
-    public OBEXFile(String filename) {
+    public OBEXFile(final String filename) {
         this(ROOT_FOLDER, filename);
     }
 
@@ -74,7 +73,7 @@ public class OBEXFile extends OBEXObject {
      * @see JOBEXFile#setContents(java.lang.String) ()
      */
     @Override
-    public void setContents(byte[] contents) throws IOException {
+    public void setContents(final byte[] contents) throws IOException {
         setSize(contents.length);
         super.setContents(contents);
     }
@@ -102,7 +101,7 @@ public class OBEXFile extends OBEXObject {
     /**
      * @param size the size of the contents.
      */
-    public void setSize(int size) {
+    public void setSize(final int size) {
         this.size = Utility.intToBytes(size, 4);
     }
 
@@ -123,7 +122,7 @@ public class OBEXFile extends OBEXObject {
      * @param inputStream the inputStream used for reading the contents of the file. Inputstream must be ready to use when setted.
      * @see JOBEXObject#setContents(java.lang.String)
      */
-    public void setInputStream(InputStream inputStream) {
+    public void setInputStream(final InputStream inputStream) {
         try {
             setSize(inputStream.available());
         } catch (IOException ex) {
@@ -138,7 +137,7 @@ public class OBEXFile extends OBEXObject {
     }
 
     @Override
-    public boolean equals(Object compobj) {
+    public boolean equals(final Object compobj) {
         if (super.equals(compobj) && compobj instanceof OBEXFile) {
             OBEXFile file = (OBEXFile) compobj;
             return (file.size == this.size);
@@ -154,7 +153,7 @@ public class OBEXFile extends OBEXObject {
     }
 
     @Override
-    protected void threatHeader(Header header) {
+    protected void threatHeader(final Header header) {
         switch (header.getId()) {
             case Header.LENGTH:
                 this.size = header.getValue();

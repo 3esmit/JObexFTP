@@ -18,6 +18,7 @@
  */
 package com.lhf.obexftplib.etc;
 
+import com.lhf.obexftplib.fs.OBEXFolder;
 import com.lhf.obexftplib.io.obexop.GetResponse;
 import com.lhf.obexftplib.io.obexop.Header;
 import com.lhf.obexftplib.io.obexop.Response;
@@ -69,8 +70,6 @@ public final class Utility {
         return CommPortIdentifier.getPortIdentifier(connPortPath);
     }
 
-
-
     /**
      * Checks for the combination looking from end to begining, in the whole array
      * @param b
@@ -87,7 +86,6 @@ public final class Utility {
         }
         return false;
     }
-
 
     /**
      * convert integer to byte array
@@ -408,6 +406,26 @@ public final class Utility {
             path = path.substring(0, n);
         }
         return path;
+    }
+
+    /**
+     * This function is used when the Path is known, but there is no OBEXFolder referenciating it.
+     * So it makes easier to user OBEXFolder to movein or create folders.
+     * @param absolutePath an absolutpath, starting with a:/ or /
+     * @return the last level OBEXFolder of the path specified.
+     */
+    public static OBEXFolder createSimbolicFolderTree(String absolutePath) {
+        if (!(absolutePath.startsWith("/") || absolutePath.startsWith("a:"))) {
+            absolutePath = "a:/" + absolutePath;
+        }
+        OBEXFolder folder = OBEXFolder.ROOT_FOLDER;
+        String pathList[] = absolutePath.split("/");
+        for (int i = 0; i < pathList.length; i++) {
+            if (!pathList[i].startsWith("a:")) {
+                folder = folder.addFolder(pathList[i]);
+            }
+        }
+        return folder;
     }
     /**
      * DateFormat for getTime

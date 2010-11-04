@@ -21,6 +21,7 @@ package com.lhf.obexftplib.io.obexop;
 
 import com.lhf.obexftplib.etc.Utility;
 import java.io.UnsupportedEncodingException;
+import java.util.Arrays;
 
 /**
  * Class represents for OBEX header
@@ -28,61 +29,60 @@ import java.io.UnsupportedEncodingException;
  * @author Joey Shen (joey.shen@sun.com)
  */
 public class Header {
-    
+
     /* Header Names, see OBEX specification 2.2 */
-    public static final byte COUNT          = (byte)0xC0;
-    public static final byte NAME           = (byte)0x01;
-    public static final byte TYPE           = (byte)0x42;
-    public static final byte LENGTH         = (byte)0xC3;
-    public static final byte TIME           = (byte)0x44;
-    public static final byte DESCRIPTION    = (byte)0x05;
-    public static final byte TARGET         = (byte)0x46;
-    public static final byte HTTP           = (byte)0x47;
-    public static final byte BODY           = (byte)0x48;
-    public static final byte END_OF_BODY    = (byte)0x49;
-    public static final byte WHO            = (byte)0x4A;
-    public static final byte CONNECTION_ID  = (byte)0xCB;
-    public static final byte APP_PARAMETERS = (byte)0x4C;
-    public static final byte AUTH_CHALLENGE = (byte)0x4D;
-    public static final byte AUTH_RESPONSE  = (byte)0x4E;
-    public static final byte CREATOR_ID     = (byte)0xCF;
-    public static final byte WAN_UUID       = (byte)0x50;
-    public static final byte OBJECT_CLASS   = (byte)0x51;
-    
-    public static final byte SESSION_PARAMETERS       = (byte)0x52;
-    public static final byte SESSION_SEQUENCE_NUMBER  = (byte)0x93;
-    
-    private byte    HeaderId;
-    private int     HeaderLength = 0;
-    private byte[]  HeaderValue;
-    
+    public static final byte COUNT = (byte) 0xC0;
+    public static final byte NAME = (byte) 0x01;
+    public static final byte TYPE = (byte) 0x42;
+    public static final byte LENGTH = (byte) 0xC3;
+    public static final byte TIME = (byte) 0x44;
+    public static final byte DESCRIPTION = (byte) 0x05;
+    public static final byte TARGET = (byte) 0x46;
+    public static final byte HTTP = (byte) 0x47;
+    public static final byte BODY = (byte) 0x48;
+    public static final byte END_OF_BODY = (byte) 0x49;
+    public static final byte WHO = (byte) 0x4A;
+    public static final byte CONNECTION_ID = (byte) 0xCB;
+    public static final byte APP_PARAMETERS = (byte) 0x4C;
+    public static final byte AUTH_CHALLENGE = (byte) 0x4D;
+    public static final byte AUTH_RESPONSE = (byte) 0x4E;
+    public static final byte CREATOR_ID = (byte) 0xCF;
+    public static final byte WAN_UUID = (byte) 0x50;
+    public static final byte OBJECT_CLASS = (byte) 0x51;
+    public static final byte SESSION_PARAMETERS = (byte) 0x52;
+    public static final byte SESSION_SEQUENCE_NUMBER = (byte) 0x93;
+    private byte HeaderId;
+    private int HeaderLength = 0;
+    private byte[] HeaderValue;
+
     public Header() {
     }
+
     /**
      * construct header of certain type 
      * 
      * @param type
      */
-    public Header(byte type) {
+    public Header(final byte type) {
         HeaderId = type;
-        if (((int)type & 0xC0) == 0xC0) {
+        if (((int) type & 0xC0) == 0xC0) {
             HeaderLength = 5;
-        } else if (((int)type & 0xC0) == 0x80) {
+        } else if (((int) type & 0xC0) == 0x80) {
             HeaderLength = 2;
         } else {
             HeaderLength = 3;
         }
     }
-    
+
     /**
      * construct header from rawdata
      * 
      * @param header
      */
-    public Header(byte[] header) {
+    public Header(final byte[] header) {
         int offset = 3;
         HeaderId = header[0];
-        
+
         /*
          * get the actual length instead of parsing from the rawdata
          */
@@ -93,10 +93,10 @@ public class Header {
 
         HeaderValue = new byte[header.length - offset];
         for (int i = 0; i < header.length - offset; i++) {
-            HeaderValue[i] = header[i + offset];   
+            HeaderValue[i] = header[i + offset];
         }
     }
-    
+
     /**
      * get the length according to the given Header Id. if the lenght is fixed,
      * return -1
@@ -104,9 +104,9 @@ public class Header {
      * @param type HeaderId
      * @return the length of given header type, -1 if the length is fixed.
      */
-    public static int getHeaderLength(byte type) {
+    public static int getHeaderLength(final byte type) {
         int result = -1;
-        switch ((int)type & 0xC0) {
+        switch ((int) type & 0xC0) {
             case 0x80:
                 result = 2;
                 break;
@@ -117,25 +117,25 @@ public class Header {
         }
         return result;
     }
-    
+
     /**
      * get HeaderId
      * 
      * @return HeaderId
      */
     public byte getId() {
-        return HeaderId;   
+        return HeaderId;
     }
-    
+
     /**
      * set HeaderId
      * 
      * @param type
      */
-    public void setId(byte type) {
+    public void setId(final byte type) {
         HeaderId = type;
     }
-    
+
     /**
      * get length of the header
      * 
@@ -144,28 +144,28 @@ public class Header {
     public int getLength() {
         return HeaderLength;
     }
-    
+
     /**
      * get Header Value
      * 
      * @return Header Value
      */
     public byte[] getValue() {
-        return HeaderValue;   
+        return HeaderValue;
     }
-    
+
     /**
      * set Header Value
      * 
      * @param value
      */
-    public void setValue(byte[] value) {
+    public void setValue(final byte[] value) {
         HeaderValue = value;
         if (hasLengthField(HeaderId)) {
             HeaderLength += value.length;
         }
     }
-    
+
     /**
      * convert the whole header to rawdata
      * 
@@ -175,30 +175,31 @@ public class Header {
         byte[] rawdata = new byte[HeaderLength];
         rawdata[0] = HeaderId;
         int offset = 1;
-        
+
         if (hasLengthField(HeaderId)) {
             byte[] length = Utility.intToBytes(HeaderLength, 2);
             Utility.setBytes(rawdata, length, 1, 2);
             offset = 3;
         }
-            
+
         for (int i = 0; i < HeaderValue.length; i++) {
             rawdata[offset + i] = HeaderValue[i];
         }
 
         return rawdata;
     }
-    
+
     /**
      * override toString method
      */
+    @Override
     public String toString() {
         String result = "";
         result += "Header: " + getHeaderName() + "\n";
         result += "Length: " + HeaderLength + "\n";
         result += "Value: ";
-        
-        if (((int)HeaderId & 0xC0) == 0) {
+
+        if (((int) HeaderId & 0xC0) == 0) {
             try {
                 result += new String(Utility.getBytes(HeaderValue, 0,
                         HeaderValue.length - 2), "UTF-16BE");
@@ -210,16 +211,16 @@ public class Header {
                 result += (HeaderLength - 3) + " body bytes omitted";
             } else {
                 for (int i = 0; i < HeaderValue.length; i++) {
-                    result += Utility.byteToHexString(HeaderValue[i]) +
-                            ", ";
+                    result += Utility.byteToHexString(HeaderValue[i])
+                            + ", ";
                 }
             }
         }
         result += "\n";
-        
+
         return result;
     }
-    
+
     /**
      * get the name of the Header as String
      * 
@@ -227,7 +228,7 @@ public class Header {
      */
     private String getHeaderName() {
         String result = "UNKNOWN";
-        
+
         switch (HeaderId) {
             case Header.COUNT:
                 result = "COUNT";
@@ -287,40 +288,50 @@ public class Header {
                 result = "WHO";
                 break;
             default:
-                /*
-                 * keep the result as UNKNOWN
-                 */
+            /*
+             * keep the result as UNKNOWN
+             */
         }
-        
+
         return result;
     }
-    
+
     /**
      * override the equals methods of Object
      * 
      * @return true if the content of the given obj is the same as this Header
      */
-    public boolean equals(Object obj) {
-        if (!Header.class.isInstance(obj)) {
-            return false;
+    @Override
+    public boolean equals(final Object obj) {
+        if (obj instanceof Header) {
+            Header inHeader = (Header) obj;
+            if (inHeader.getId() != HeaderId) {
+                return false;
+            }
+            if (inHeader.getLength() != HeaderLength) {
+                return false;
+            }
+            return Utility.compareBytes(inHeader.getValue(), HeaderValue);
         }
-        Header inHeader = (Header)obj;
-        if (inHeader.getId() != HeaderId) {
-            return false;
-        }
-        if (inHeader.getLength() != HeaderLength) {
-            return false;
-        }
-        return Utility.compareBytes(inHeader.getValue(), HeaderValue);
+        return false;
     }
-    
+
+    @Override
+    public int hashCode() {
+        int hash = 3;
+        hash = 97 * hash + this.HeaderId;
+        hash = 97 * hash + this.HeaderLength;
+        hash = 97 * hash + Arrays.hashCode(this.HeaderValue);
+        return hash;
+    }
+
     /**
      * detect if the header contains HeaderLength field
      * 
      * @return true if it contains (in case highest bit as 0), false if not
      * (in case highest bit as 1)
      */
-    protected static boolean hasLengthField(byte type) {
-        return (((int)type) & 0x80) == 0;
+    protected static boolean hasLengthField(final byte type) {
+        return (((int) type) & 0x80) == 0;
     }
 }

@@ -30,6 +30,7 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.io.InputStream;
 import java.util.ArrayList;
 import java.util.EnumSet;
 import java.util.Iterator;
@@ -177,7 +178,12 @@ public class StandAloneApp {
             if (args != null && args.length > 0 && !args[0].equalsIgnoreCase("")) {
                 c.changeDirectory(args[0], false);
             }
-            System.out.print(new String(c.loadFolderListing().getListing()));
+            if (write) {
+                System.out.print(c.loadFolderListing().getListing());
+            } else {
+                System.out.print(new String(c.loadFolderListing().getContents()));
+
+            }
             if (args != null && args.length > 0 && !args[0].equalsIgnoreCase("")) {
                 c.changeDirectory("/", false);
             }
@@ -195,6 +201,7 @@ public class StandAloneApp {
                 String path = "/";
                 File f;
                 if (!args[0].equalsIgnoreCase("")) {
+                    System.out.println("Sending " + args[0]);
                     f = new File(args[0]);
                     filenameS = f.getName();
                 } else {
@@ -208,8 +215,16 @@ public class StandAloneApp {
                     path = Utility.removeLastFolder(args[1]);
                     c.changeDirectory(path, false);
                 }
+
                 OBEXFile file = new OBEXFile(filenameS);
-                file.setInputStream(new FileInputStream(f));
+                InputStream is = new FileInputStream(f);
+                int size = is.available();
+//                byte[] contents = new byte[size];
+                System.out.println("Size "+size);
+                file.setInputStream(is);
+//                is.read(contents);
+//                file.setContents(contents);
+
                 c.writeFile(file);
                 c.changeDirectory("/", false);
             }
@@ -237,9 +252,11 @@ public class StandAloneApp {
                 String filenameS;
                 String path = "/";
                 filenameS = Utility.getLastFolder(args[0]);
-                path = Utility.removeLastFolder(args[0]);
+                path = Utility.preparePath(Utility.removeLastFolder(args[0]));
                 c.changeDirectory(path, false);
-                c.removeObject(new OBEXFile(filenameS));
+                boolean b = c.removeObject(new OBEXFile(Utility.createSimbolicFolderTree(path), filenameS));
+                System.out.println("Removed " + filenameS + " in " + c.getCurrentFolder().getPath() + (b ? " with success" : "with error"));
+
                 c.changeDirectory("/", false);
             }
         } catch (IOException ex) {
