@@ -49,33 +49,15 @@ import org.xml.sax.helpers.DefaultHandler;
  */
 public final class OBEXFolder extends OBEXObject {
 
-    private String path = null;
     private final Map<String, OBEXObject> subobjects = new TreeMap<String, OBEXObject>();
     private static final OBEXFolderListingParser PARSER = new OBEXFolderListingParser();
 
     public OBEXFolder(final OBEXFolder parentFolder, final String filename) {
-        super(parentFolder);
-        setName(filename);
+        super(parentFolder, filename);
     }
 
     public OBEXFolder(final String filename) {
-        this(ROOT_FOLDER, filename);
-    }
-
-    /**
-     * Builds the path string based in the parentfolder and in this folder.
-     * @return
-     */
-    @Override
-    public String getPath() {
-        if (path == null) {
-            if (getParentFolder() == null) {
-                path = "";
-            } else {
-                path = getParentFolder().getPath() + "/";
-            }
-        }
-        return path + name;
+        super(ROOT_FOLDER, filename);
     }
 
     public void add(final OBEXObject object) {
@@ -266,22 +248,23 @@ class OBEXFolderListingParser extends DefaultHandler {
 
     @Override
     public void startElement(final String uri, final String localName, final String qName, final Attributes attributes) throws SAXException {
-        OBEXObject childObject = null;
+        OBEXObject cObj = null;
+        String oName = attributes.getValue("name");
         if (qName.equalsIgnoreCase("folder")) {
-            childObject = new OBEXFolder(folder, attributes.getValue("name"));
-            childObject.setTime(attributes.getValue("modified"));
-            childObject.setUserPerm(attributes.getValue("user-perm"));
-            childObject.setGroupPerm(attributes.getValue("group-perm"));
+            cObj = folder.getChildFolder(oName);
+            cObj = cObj == null ? new OBEXFolder(folder, oName) : cObj;
         } else if (qName.equalsIgnoreCase("file")) {
-            OBEXFile childFile = new OBEXFile(folder, attributes.getValue("name"));
-            childFile.setTime(attributes.getValue("modified"));
-            childFile.setUserPerm(attributes.getValue("user-perm"));
-            childFile.setGroupPerm(attributes.getValue("group-perm"));
-            childFile.setSize(Integer.parseInt(attributes.getValue("size")));
-            childObject = childFile;
+            OBEXFile cFile = folder.getChildFile(oName);
+            cFile = cFile == null ? new OBEXFile(folder, oName) : cFile;
+            cFile.setSize(Integer.parseInt(attributes.getValue("size")));
+            cObj = cFile;
         }
-        if (childObject != null) {
-            folder.add(childObject);
+        if (cObj == null) {
+            return;
         }
+        cObj.setTime(attributes.getValue("modified"));
+        cObj.setUserPerm(attributes.getValue("user-perm"));
+        cObj.setGroupPerm(attributes.getValue("group-perm"));
+        folder.add(cObj);
     }
 }

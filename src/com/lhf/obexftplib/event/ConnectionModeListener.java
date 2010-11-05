@@ -29,5 +29,5 @@ public interface ConnectionModeListener {
      * 
      * @param mode the new mode
      */
-    void update(int mode);
+    void update(int mode, boolean changed);
 }

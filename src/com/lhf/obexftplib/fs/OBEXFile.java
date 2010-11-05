@@ -40,12 +40,11 @@ public final class OBEXFile extends OBEXObject {
     private String path = null;
 
     public OBEXFile(final OBEXFolder parentFolder, final String filename) {
-        super(parentFolder);
-        setName(filename);
+        super(parentFolder, filename);
     }
 
     public OBEXFile(final String filename) {
-        this(ROOT_FOLDER, filename);
+        super(ROOT_FOLDER, filename);
     }
 
     public HeaderSet getHeaderSet() {
@@ -78,18 +77,6 @@ public final class OBEXFile extends OBEXObject {
         super.setContents(contents);
     }
 
-    /**
-     * Function used to determinate the path of the getted object, when a file is downloaded from server. Not used for put operations.
-     * @return the path of getted object.
-     */
-    @Override
-    public String getPath() {
-        if (path != null) {
-            return path + "/" + getBinaryName();
-        } else {
-            return parentFolder.getPath() + "/" + getBinaryName();
-        }
-    }
 
     /**
      * @return the size of the contents of object

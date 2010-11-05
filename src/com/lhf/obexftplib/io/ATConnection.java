@@ -128,7 +128,7 @@ public class ATConnection {
         }
         LOGGER.log(Level.FINEST, "Switching from connection mode {0} to mode {1}.", new String[]{Integer.toString(connMode), Integer.toString(newConnMode)});
 
-        notifyModeListeners(newConnMode);
+        notifyModeListeners(newConnMode, false);
         switch (connMode) {
             case MODE_DISCONNECTED:
                 try {
@@ -160,6 +160,7 @@ public class ATConnection {
                 }
                 break;
         }
+        notifyModeListeners(connMode, true);
     }
 
     /**
@@ -192,6 +193,13 @@ public class ATConnection {
             }
         }
 
+    }
+
+    public boolean isAnswering() throws IOException {
+        if (send(getDevice().CMD_CHECK, 200).length > 0) {
+            return true;
+        }
+        return false;
     }
 
     /**
@@ -362,9 +370,9 @@ public class ATConnection {
     /**
      * Method used for notifying the listeners when a connectionmode has changed.
      */
-    private void notifyModeListeners(final int newConnMode) {
+    private void notifyModeListeners(final int newConnMode, boolean changed) {
         for (Iterator<ConnectionModeListener> it = connModeListners.iterator(); it.hasNext();) {
-            it.next().update(newConnMode);
+            it.next().update(newConnMode, changed);
         }
     }
 
@@ -412,8 +420,6 @@ public class ATConnection {
     public CommPortIdentifier getCommPortIdentifier() {
         return commPortIdentifier;
     }
-
-
 
     /**
      * Get the current connection mode
@@ -502,7 +508,7 @@ public class ATConnection {
                                 Logger.getLogger(ATConnection.class.getName()).log(Level.SEVERE, null, ex1);
                             }
                             connMode = MODE_DISCONNECTED;
-                            notifyModeListeners(connMode);
+                            notifyModeListeners(connMode, true);
                         }
                         hasIncomingPacket = true;
                         holder.notifyAll();

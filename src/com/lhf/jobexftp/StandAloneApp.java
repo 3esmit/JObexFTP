@@ -218,13 +218,7 @@ public class StandAloneApp {
 
                 OBEXFile file = new OBEXFile(filenameS);
                 InputStream is = new FileInputStream(f);
-                int size = is.available();
-//                byte[] contents = new byte[size];
-                System.out.println("Size "+size);
                 file.setInputStream(is);
-//                is.read(contents);
-//                file.setContents(contents);
-
                 c.writeFile(file);
                 c.changeDirectory("/", false);
             }
@@ -232,7 +226,6 @@ public class StandAloneApp {
             logger.log(Level.SEVERE, null, ex);
         }
     }
-
     private void createFolder(String[] args) {
         try {
             OBEXClient c = getObexClient();

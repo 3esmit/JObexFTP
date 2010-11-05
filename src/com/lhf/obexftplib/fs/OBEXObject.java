@@ -36,17 +36,28 @@ import java.util.Iterator;
 public abstract class OBEXObject extends OutputStream {
 
     public static final OBEXFolder ROOT_FOLDER = new OBEXFolder(null, "a:");
+    private final ByteArrayOutputStream contents = new ByteArrayOutputStream(600);
+    private final OBEXFolder parentFolder; //parent folder cannot be changed.
     private byte[] binaryName = {}, groupPerm = {'\"', '\"'}, userPerm = {'\"', '\"'};
     private Date modified = null, time = null;
-    protected String name = "";
-    private OBEXFolder parentFolder = ROOT_FOLDER;
-    private ByteArrayOutputStream contents = new ByteArrayOutputStream(600);
     private boolean endOfBody = false;
+    private String path = null;
+    protected String name = "";
 
-    public abstract String getPath();
+    public String getPath() {
+        if (path == null) {
+            if (getParentFolder() == null) {
+                path = "";
+            } else {
+                path = getParentFolder().getPath() + "/";
+            }
+        }
+        return path + name;
+    }
 
-    public OBEXObject(final OBEXFolder parentFolder) {
+    public OBEXObject(final OBEXFolder parentFolder, final String name) {
         this.parentFolder = parentFolder;
+        setName(name);
     }
 
     public void addResponse(final Response res) {
@@ -60,6 +71,12 @@ public abstract class OBEXObject extends OutputStream {
         for (int i = 0; i < res.length; i++) {
             addResponse(res[i]);
         }
+    }
+
+    protected void onReady() {
+    }
+
+    protected void onReset() {
     }
 
     protected abstract void threatHeader(final Header header);
@@ -82,7 +99,7 @@ public abstract class OBEXObject extends OutputStream {
     /**
      * @param name the name to set
      */
-    public void setName(final String name) {
+    public final void setName(final String name) {
         this.name = name;
         this.binaryName = Utility.nameToBytes(name);
     }
@@ -90,7 +107,7 @@ public abstract class OBEXObject extends OutputStream {
     /**
      * @param name the name to set
      */
-    public void setName(final byte[] name) {
+    public final void setName(final byte[] name) {
         this.binaryName = name;
         this.name = Utility.bytesToName(name);
     }
@@ -168,9 +185,6 @@ public abstract class OBEXObject extends OutputStream {
         endOfBody = false;
     }
 
-    protected void onReset() {
-    }
-
     public void setContents(final byte[] contents) throws IOException {
         if (endOfBody) {
             reset();
@@ -221,9 +235,6 @@ public abstract class OBEXObject extends OutputStream {
     public final void setReady() {
         this.endOfBody = true;
         onReady();
-    }
-
-    protected void onReady() {
     }
 
     @Override

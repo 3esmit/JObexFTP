@@ -69,7 +69,8 @@ public class OBEXClient {
         logger.log(Level.FINEST, "Connecting");
         connected = false;
         if (conn.getConnMode() != ATConnection.MODE_DATA) {
-            throw new IllegalArgumentException();
+            logger.log(Level.WARNING, "Is not possible to connect to obex server in AT Mode, switch first to Data Mode");
+            return false;
         }
         this.os = conn.getOutputStream();
         this.conn.addConnectionModeListener(eventListener);
@@ -408,10 +409,11 @@ public class OBEXClient {
         if (success) {
             if (folderName == null) {
                 currentFolder = getCurrentFolder().getParentFolder();
-            } else {
+            } else if (!folderName.equals("")) {
                 OBEXFolder childFolder = getCurrentFolder().getChildFolder(folderName);
                 currentFolder = childFolder == null ? new OBEXFolder(getCurrentFolder(), folderName) : childFolder;
             }
+
         }
         logger.log(Level.FINE, "Now in folder {0}", getCurrentFolder().getPath());
 
@@ -441,8 +443,8 @@ public class OBEXClient {
             }
         }
 
-        public void update(final int mode) {
-            if (mode != ATConnection.MODE_DATA) {
+        public void update(final int mode, final boolean changed) {
+            if (mode != ATConnection.MODE_DATA && !changed) {
                 try {
                     logger.log(Level.WARNING, "Datamode to close unexpectedly");
                     abort();
