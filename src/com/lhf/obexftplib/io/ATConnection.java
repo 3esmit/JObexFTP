@@ -28,6 +28,7 @@ import gnu.io.CommPort;
 import gnu.io.CommPortIdentifier;
 import gnu.io.NoSuchPortException;
 import gnu.io.PortInUseException;
+import gnu.io.RXTXPort;
 import gnu.io.SerialPort;
 import gnu.io.SerialPortEvent;
 import gnu.io.SerialPortEventListener;
@@ -84,15 +85,16 @@ public class ATConnection {
     private final ArrayList<ATEventListener> atEventListners = new ArrayList<ATEventListener>(10);
     private final Object holder = new Object();
     private int connMode = MODE_DISCONNECTED;
-    private int baudRate = 115200;
+    private int baudRate = 460800;
     private byte flowControl = FLOW_RTSCTS;
     private byte[] incomingData;
     private boolean hasIncomingPacket;
     private CommPortIdentifier commPortIdentifier;
     private InputStream is;
     private OutputStream os;
-    private SerialPort serialPort;
+    private RXTXPort serialPort;
     private OBEXDevice device;
+    private int errors = 0;
 
     /**
      * Creates a connection stream to serial device using a string as port identifier
@@ -122,7 +124,7 @@ public class ATConnection {
      * @see ATConnection#MODE_AT
      * @see ATConnection#MODE_DATA
      */
-    public void setConnMode(final int newConnMode) throws IOException {
+    public synchronized void setConnMode(final int newConnMode) throws IOException {
         if (connMode == newConnMode) {
             return;
         }
@@ -134,20 +136,25 @@ public class ATConnection {
                 try {
                     open();
                 } catch (UnsupportedCommOperationException ex) {
-                    throw new IOException(ex.getMessage(), ex);
+                    terminate();
+                    throw new IOException("Operação não suportada: " + ex.getMessage(), ex);
                 } catch (PortInUseException ex) {
-                    throw new IOException(ex.getMessage(), ex);
+                    terminate();
+                    throw new IOException("A porta " + commPortIdentifier.getName() + " está em uso", ex);
                 }
-                connMode = MODE_AT;
-                identifyDevice();
                 if (newConnMode == MODE_DATA) {
                     connMode = openDataMode() ? MODE_DATA : connMode;
                 }
                 break;
             case MODE_AT:
                 if (newConnMode == MODE_DISCONNECTED) {
-                    close();
-                    connMode = MODE_DISCONNECTED;
+                    try {
+                        close();
+                    } catch (Exception e) {
+                        e.printStackTrace();
+                    } finally {
+                        connMode = MODE_DISCONNECTED;
+                    }
                 } else {
                     connMode = openDataMode() ? MODE_DATA : connMode;
                 }
@@ -160,7 +167,16 @@ public class ATConnection {
                 }
                 break;
         }
-        notifyModeListeners(connMode, true);
+        if (connMode == newConnMode) {
+            errors = 0;
+            notifyModeListeners(connMode, true);
+        } else {
+            errors++;
+            if (errors > 5) {
+                terminate();
+                throw new IOException("I/O Error. Cannot communicate properly.");
+            }
+        }
     }
 
     /**
@@ -169,9 +185,9 @@ public class ATConnection {
      * @return the response
      * @throws IOException if OutputStream or InputStream gives error, is closed, or if connMode is wrong.
      */
-    public byte[] send(final byte[] b, final int timeout) throws IOException {
+    public synchronized byte[] send(final byte[] b, final int timeout) throws IOException {
         if (connMode != MODE_AT) {
-            throw new IllegalStateException("Connection needs to be in state 1 (MODE_AT), and it is in state " + connMode);
+            LOGGER.log(Level.WARNING, "Trying to send in wrong mode. Mode is {0}", connMode);
         }
         return sendPacket(b, timeout);
     }
@@ -181,7 +197,7 @@ public class ATConnection {
      */
     public void identifyDevice() throws IOException {
         if (device == null && connMode == MODE_AT) {
-            String s = new String(send(OBEXDevice.TEST_DEVICE, 500)).replace('\r', ' ').replace('\n', ' ');
+            String s = new String(send("AT+CGMM\r".getBytes(), 500));
             if (s.indexOf("ERROR") > -1) {
                 LOGGER.log(Level.WARNING, "Warning: Device is in wrong mode.");
             } else if (s.indexOf("TC65") > -1) {
@@ -195,9 +211,33 @@ public class ATConnection {
 
     }
 
-    public boolean isAnswering() throws IOException {
-        if (send(getDevice().CMD_CHECK, 200).length > 0) {
-            return true;
+    /**
+     * Method used to auto identify the device, if it is not yet identified.
+     */
+    public boolean identifyDevice(byte[] b) throws IOException {
+        if (device == null && connMode == MODE_AT) {
+            String s = new String(b);
+            if (s.indexOf("ERROR") > -1) {
+                LOGGER.log(Level.WARNING, "Warning: Device is in wrong mode.");
+            } else if (s.indexOf("TC65") > -1) {
+                LOGGER.log(Level.FINE, "Found TC65 device.");
+                setDevice(OBEXDevice.TC65);
+                return true;
+            } else {
+                LOGGER.log(Level.WARNING, "Unknown device" + s + ", using default settings");
+                setDevice(OBEXDevice.DEFAULT);
+            }
+        }
+        return false;
+    }
+
+    public boolean isAnswering() {
+        try {
+            if (send(getDevice().CMD_CHECK, 200).length > 0) {
+                return true;
+            }
+        } catch (IOException ex) {
+            Logger.getLogger(ATConnection.class.getName()).log(Level.SEVERE, null, ex);
         }
         return false;
     }
@@ -263,7 +303,7 @@ public class ATConnection {
      * @return an array containging the data, or an array of 0 positions if timedout
      * @throws IOException if an IO exceptio occurs
      */
-    private byte[] sendPacket(final byte[] b, final int timeout) throws IOException {
+    private synchronized byte[] sendPacket(final byte[] b, final int timeout) throws IOException {
         LOGGER.log(Level.FINER, "Send {0}", new String(b));
         synchronized (holder) {
             os.write(b);
@@ -274,7 +314,7 @@ public class ATConnection {
             }
         }
         if (!hasIncomingPacket) {
-            incomingData = new byte[]{};
+            incomingData = new byte[0];
         }
         LOGGER.log(Level.FINER, "Recieve {0}", new String(incomingData));
         return incomingData;
@@ -286,12 +326,12 @@ public class ATConnection {
      * @throws UnsupportedCommOperationException if it could not set the serialport params or the flowcontrol
      * @throws PortInUseException if the port specified is in use.
      */
-    private void open() throws IOException, UnsupportedCommOperationException, PortInUseException {
+    private synchronized void open() throws IOException, UnsupportedCommOperationException, PortInUseException {
         LOGGER.log(Level.FINEST, "Configuring serial port");
         CommPort commPort = commPortIdentifier.open(this.getClass().getName(), 2000);
-        serialPort = (SerialPort) commPort;
-        serialPort.setEndOfInputChar((byte) 10);
+        serialPort = (RXTXPort) commPort;
         serialPort.setSerialPortParams(baudRate, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
+        serialPort.setEndOfInputChar((byte) 10);
         switch (flowControl) {
             case FLOW_NONE:
                 serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
@@ -306,13 +346,26 @@ public class ATConnection {
         LOGGER.log(Level.FINEST, "Opening I/O");
         is = serialPort.getInputStream();
         os = serialPort.getOutputStream();
+        serialPort.enableReceiveTimeout(1000);
+        serialPort.setOutputBufferSize(512);
+        serialPort.setInputBufferSize(512);
         serialPort.notifyOnDataAvailable(true);
         try {
             serialPort.addEventListener(eventListener);
         } catch (TooManyListenersException ex) {
             Logger.getLogger(ATConnection.class.getName()).log(Level.SEVERE, null, ex);
         }
+        connMode = MODE_AT;
+        onOpen();
+
+    }
+
+    /**
+     * Method called after a connection is opened.
+     */
+    protected void onOpen() throws IOException {
         estabilize();
+        identifyDevice();
     }
 
     /**
@@ -321,12 +374,21 @@ public class ATConnection {
      */
     public void estabilize() throws IOException {
         LOGGER.log(Level.FINEST, "Estabilizating I/O");
-        if (!Utility.arrayContainsOK(sendPacket(OBEXDevice.CMD_CHECK, 50))) {
+//        sendPacket(OBEXDevice.CMD_CHECK, 50);
+        if (send(OBEXDevice.CMD_CHECK, 50).length < 1) {
             closeDataMode();
         }
-        sendPacket(new byte[]{'A', 'T', 'E', '\r'}, 50);
-        sendPacket(OBEXDevice.CMD_CHECK, 50);
-        sendPacket(OBEXDevice.CMD_CHECK, 50);
+        send(new byte[]{'A', 'T', 'E', '\r'}, 50);
+        send(new byte[]{'A', 'T', 'E', '\r'}, 50);
+        send(OBEXDevice.CMD_CHECK, 50);
+        send(OBEXDevice.CMD_CHECK, 50);
+    }
+
+    /**
+     * Method called before the comm port and it streams are closed.
+     */
+    protected void onClose() throws IOException {
+        sendPacket(new byte[]{'A', 'T', 'Z', '\r'}, 50);
     }
 
     /**
@@ -334,11 +396,36 @@ public class ATConnection {
      * @throws IOException if an IO error occurs.
      */
     private void close() throws IOException {
-        sendPacket(new byte[]{'A', 'T', 'E', '1', '\r'}, 50);
-        serialPort.removeEventListener();
-        serialPort.close();
-        os.close();
-        is.close();
+        try {
+            onClose();
+        } finally {
+            terminate();
+        }
+    }
+
+    public void terminate() {
+        System.out.println("Terminating...");
+        if (serialPort != null) {
+            serialPort.removeEventListener();
+        }
+        if (os != null) {
+            try {
+                os.close();
+            } catch (IOException ex) {
+                Logger.getLogger(ATConnection.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        if (is != null) {
+            try {
+                is.close();
+            } catch (IOException ex) {
+                Logger.getLogger(ATConnection.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
+        if (serialPort != null) {
+            serialPort.close();
+        }
+
     }
 
     /**
@@ -349,7 +436,8 @@ public class ATConnection {
     private boolean closeDataMode() throws IOException {
         LOGGER.log(Level.FINEST, "Closing datamode.");
         boolean b = false;
-        for (int i = 0; (b = !Utility.arrayContainsOK(sendPacket(new byte[]{'+', '+', '+'}, 1000))) && i < 5; i++);
+        for (int i = 0; (b = sendPacket(new byte[]{'+', '+', '+'}, 1000).length < 1) && i < 5; i++);
+        connMode = (Utility.arrayContainsOK(sendPacket(getDevice().CMD_CHECK, 50)) ? MODE_DATA : MODE_AT);
         return !b;
     }
 
@@ -362,17 +450,20 @@ public class ATConnection {
         LOGGER.log(Level.FINEST, "Opening datamode.");
         send(getDevice().getFlowControl(flowControl), 500);
         if (!Utility.arrayContainsOK(send(getDevice().getObexCheck(), 500))) {
+            connMode = MODE_AT;
             return false;
         }
-        return Utility.arrayContainsOK(send(getDevice().getObexOpen(), 2000));
+        boolean b = Utility.arrayContainsOK(send(getDevice().getObexOpen(), 2000));
+        connMode = (b ? MODE_DATA : MODE_AT);
+        return b;
     }
 
     /**
      * Method used for notifying the listeners when a connectionmode has changed.
      */
     private void notifyModeListeners(final int newConnMode, boolean changed) {
-        for (Iterator<ConnectionModeListener> it = connModeListners.iterator(); it.hasNext();) {
-            it.next().update(newConnMode, changed);
+        for (int i = 0; i < connModeListners.size(); i++) {
+            connModeListners.get(i).update(newConnMode, changed);
         }
     }
 
@@ -388,7 +479,7 @@ public class ATConnection {
     /**
      * Method used for notifying the ateventlisteners when a incoming at is ready.
      */
-    private void notifyATEventListeners(final byte[] event) {
+    protected void notifyATEventListeners(final byte[] event) {
         for (Iterator<ATEventListener> it = atEventListners.iterator(); it.hasNext();) {
             it.next().ATEvent(event);
         }
@@ -483,6 +574,12 @@ public class ATConnection {
         this.device = device;
     }
 
+    public byte[] readAll() throws IOException {
+        byte[] incomingData = new byte[is.available()];
+        is.read(incomingData);
+        return incomingData;
+    }
+
     /**
      * Private class to hold the SerialPortEventListener#serialEvent(gnu.io.SerialPortEvent) out visibility of public.
      * @see SerialPortEventListener#serialEvent(gnu.io.SerialPortEvent)
@@ -498,15 +595,10 @@ public class ATConnection {
                 switch (spe.getEventType()) {
                     case SerialPortEvent.DATA_AVAILABLE:
                         try {
-                            incomingData = new byte[is.available()];
-                            is.read(incomingData);
-                        } catch (IOException ex) {
-                            serialPort.removeEventListener();
-                            try {
-                                close();
-                            } catch (IOException ex1) {
-                                Logger.getLogger(ATConnection.class.getName()).log(Level.SEVERE, null, ex1);
-                            }
+                            incomingData = readAll();
+                        } catch (Throwable ex) {
+                            notifyModeListeners(connMode, false);
+                            terminate();
                             connMode = MODE_DISCONNECTED;
                             notifyModeListeners(connMode, true);
                         }
@@ -517,7 +609,6 @@ public class ATConnection {
                         } else if (connMode == MODE_AT) {
                             notifyATEventListeners(incomingData);
                         }
-                        break;
                 }
             }
         }

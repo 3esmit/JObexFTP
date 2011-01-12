@@ -87,6 +87,25 @@ public final class Utility {
         return false;
     }
 
+    public static boolean arrayContains(final byte[] what, final byte[] b) {
+        boolean r = false;
+        for (int i = b.length - 1; i > what.length; i--) {
+            int j = what.length;
+            while (j > -1) {
+                if (b[i] != what[j]) {
+                    r = false;
+                    continue;
+                } else {
+                    r = true;
+                }
+            }
+            if (r) {
+                return r;
+            }
+        }
+        return r;
+    }
+
     /**
      * convert integer to byte array
      *

@@ -65,12 +65,14 @@ public class OBEXClient {
      * @throws IOException
      */
     public boolean connect() throws IOException {
+        if (connected) {
+            return connected;
+        }
         this.device = conn.getDevice();
         logger.log(Level.FINEST, "Connecting");
         connected = false;
         if (conn.getConnMode() != ATConnection.MODE_DATA) {
-            logger.log(Level.WARNING, "Is not possible to connect to obex server in AT Mode, switch first to Data Mode");
-            return false;
+            conn.setConnMode(ATConnection.MODE_DATA);
         }
         this.os = conn.getOutputStream();
         this.conn.addConnectionModeListener(eventListener);
@@ -99,6 +101,9 @@ public class OBEXClient {
      * @throws IOException
      */
     public boolean disconnect() throws IOException {
+        if (!connected) {
+            return !connected;
+        }
         logger.log(Level.FINEST, "Disconnecting");
         sendPacketAndWait(new DisconnectRequest(), 500);
         if (hasIncomingPacket) {
@@ -130,7 +135,7 @@ public class OBEXClient {
     }
 
     /**
-     * Erases all deletable files in server disk. WARNING: this operations is irreversible, and does not ask confirmation.
+     * Erases all deletable files in server disk. WARNING: this operation is irreversible, and does not ask confirmation.
      * @return true if operation was successful.
      */
     public boolean eraseDisk() throws IOException {
@@ -159,7 +164,7 @@ public class OBEXClient {
      * @return true if successful operation.
      */
     public boolean removeObject(final byte[] filename) throws IOException {
-        logger.log(Level.FINEST, "Removing object {0}", filename);
+        logger.log(Level.FINEST, "Removing object {0}", new String(filename));
 
         PutRequest req = new PutRequest();
         req.setFinal();
@@ -183,8 +188,14 @@ public class OBEXClient {
     public boolean changeDirectory(final OBEXObject object, final boolean create) throws IOException {
         String path;
         if (object instanceof OBEXFolder) {
+            if (object == getCurrentFolder()) {
+                return true;
+            }
             path = object.getPath();
         } else {
+            if (object.getParentFolder() == getCurrentFolder()) {
+                return true;
+            }
             path = object.getParentFolder().getPath();
         }
         return changeDirectory(path, create);
@@ -203,9 +214,10 @@ public class OBEXClient {
         boolean success = true;
         path = Utility.preparePath(path); //prepare path to help users who havent read the docs.
         if (path.startsWith("a:")) { //if changeDir path is absolute
-            path = Utility.getRelativePath(path, getCurrentFolder().getPath()); // now is absolute (:
+            path = Utility.getRelativePath(path, getCurrentFolder().getPath()); // now is relative (:
         }
-        if (getCurrentFolder().getPath().equalsIgnoreCase(path)) {
+        String currentpath = getCurrentFolder().getPath();
+        if (currentpath.equalsIgnoreCase(path)) {
             return true;
         }
         String pathList[] = path.split("/");
@@ -235,9 +247,9 @@ public class OBEXClient {
     public OBEXFile readFile(final OBEXFile file) throws IOException {
         GetRequest request = new GetRequest();
         request.setFinal();
-        Header type = new Header(Header.NAME);
-        type.setValue(file.getBinaryName());
-        request.addHeader(type);
+        Header name = new Header(Header.NAME);
+        name.setValue(file.getBinaryName());
+        request.addHeader(name);
         file.addResponses(getAll(request));
         return file;
     }
@@ -271,7 +283,7 @@ public class OBEXClient {
         InputStream is = file.getInputStream();
         int toRead;
         do {
-            int size = maxPacketLenght - req.getPacketLength();
+            int size = (maxPacketLenght-40) - req.getPacketLength();
             int ava = is.available();
             if (ava < size + 3) {
                 toRead = ava;
@@ -447,7 +459,7 @@ public class OBEXClient {
             if (mode != ATConnection.MODE_DATA && !changed) {
                 try {
                     logger.log(Level.WARNING, "Datamode to close unexpectedly");
-                    abort();
+//                    abort();
                     disconnect();
                 } catch (IOException ex) {
                     Logger.getLogger(OBEXClient.class.getName()).log(Level.SEVERE, null, ex);

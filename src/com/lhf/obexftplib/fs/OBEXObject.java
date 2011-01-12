@@ -33,7 +33,7 @@ import java.util.Iterator;
  * Abstract class containing common attributes and behavior of OBEXFile and OBEXFolder.
  * @author Ricardo Guilherme Schmidt <ricardo@lhf.ind.br>
  */
-public abstract class OBEXObject extends OutputStream {
+public abstract class OBEXObject {
 
     public static final OBEXFolder ROOT_FOLDER = new OBEXFolder(null, "a:");
     private final ByteArrayOutputStream contents = new ByteArrayOutputStream(600);
@@ -185,6 +185,11 @@ public abstract class OBEXObject extends OutputStream {
         endOfBody = false;
     }
 
+    /**
+     * Resets and sets the content of this object.
+     * @param contents
+     * @throws IOException
+     */
     public void setContents(final byte[] contents) throws IOException {
         if (endOfBody) {
             reset();
@@ -196,10 +201,6 @@ public abstract class OBEXObject extends OutputStream {
         this.contents.write(content);
     }
 
-    @Override
-    public void write(final int b) throws IOException {
-        this.contents.write((char) b);
-    }
 
     /**
      * @return the time
@@ -218,6 +219,10 @@ public abstract class OBEXObject extends OutputStream {
         this.time = time;
     }
 
+    /**
+     * The time to set in yyyyMMdd'T'HHmmss time representated String
+     * @param value
+     */
     public void setTime(final String value) {
         if (value == null) {
             return;

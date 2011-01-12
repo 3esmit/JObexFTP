@@ -232,9 +232,13 @@ class OBEXFolderListingParser extends DefaultHandler {
         xml.setFeature("http://xml.org/sax/features/validation", false);
         xml.setContentHandler(this);
 
-        file = new File("obex-folder-listing.dtd");
-        if (!file.exists()) {
-            file.createNewFile();
+        try {
+            file = new File("obex-folder-listing.dtd");
+            if (!file.exists()) {
+                file.createNewFile();
+            }
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 

@@ -87,10 +87,10 @@ public class StandAloneApp {
     }
 
     private void close() {
-        if (atConn != null) {
+        if (getAtConn() != null) {
             try {
                 closeObexClient();
-                atConn.setConnMode(0);
+                getAtConn().setConnMode(0);
             } catch (IOException ex) {
                 logger.log(Level.SEVERE, null, ex);
             }
@@ -141,7 +141,7 @@ public class StandAloneApp {
 
     private void setDevice(String dev) {
         if (dev.toLowerCase().indexOf("sie") > -1 || dev.toLowerCase().indexOf("cint") > -1 || dev.toLowerCase().indexOf("tc65") > -1) {
-            atConn.setDevice(OBEXDevice.TC65);
+            getAtConn().setDevice(OBEXDevice.TC65);
         }
     }
 
@@ -151,7 +151,7 @@ public class StandAloneApp {
                 obexClient.disconnect();
                 obexClient = null;
             }
-            atConn.setConnMode(1);
+            getAtConn().setConnMode(1);
         } catch (IOException ex) {
             logger.log(Level.SEVERE, null, ex);
         }
@@ -161,8 +161,8 @@ public class StandAloneApp {
     private OBEXClient getObexClient() {
         if (obexClient == null) {
             try {
-                atConn.setConnMode(2);
-                obexClient = new OBEXClient(atConn);
+                getAtConn().setConnMode(2);
+                obexClient = new OBEXClient(getAtConn());
                 obexClient.connect();
             } catch (IOException ex) {
                 logger.log(Level.SEVERE, null, ex);
@@ -310,7 +310,7 @@ public class StandAloneApp {
                 closeObexClient();
                 for (int i = 0; i < args.length; i++) {
                     Thread.sleep(atsleep);
-                    atConn.send((args[i] + "\r").getBytes(), 5000);
+                    getAtConn().send((args[i] + "\r").getBytes(), 5000);
                 }
             }
         } catch (Exception ex) {
@@ -320,6 +320,13 @@ public class StandAloneApp {
 
     private void showVersion() {
         printVersion();
+    }
+
+    /**
+     * @return the atConn
+     */
+    public ATConnection getAtConn() {
+        return atConn;
     }
 
     private enum Option {
@@ -349,13 +356,13 @@ public class StandAloneApp {
             try {
                 switch (this) {
                     case BAUDRATE:
-                        app.atConn.setBaudRate(Integer.parseInt(args[0]));
+                        app.getAtConn().setBaudRate(Integer.parseInt(args[0]));
                         break;
                     case DONTWRITE:
                         app.write = false;
                         break;
                     case FLOWCONTROL:
-                        app.atConn.setFlowControl(Byte.parseByte(args[0]));
+                        app.getAtConn().setFlowControl(Byte.parseByte(args[0]));
                         break;
                     case MANUFACTER:
                         app.setDevice(args[0]);
