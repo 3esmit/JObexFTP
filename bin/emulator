@@ -1,0 +1,41 @@
+#!/bin/bash
+# This file is part of JObexFTP utils <http://www.github.com/3esmit/jobexftp>.
+#
+# JObexFTP is free software: you can redistribute it and/or modify
+# it under the terms of the GNU Lesser General Public License as published by
+# the Free Software Foundation, either version 3 of the License, or
+# (at your option) any later version.
+#
+# JObexFTP is distributed in the hope that it will be useful,
+# but WITHOUT ANY WARRANTY; without even the implied warranty of
+# MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
+# GNU Lesser General Public License for more details.
+# 
+# You should have received a copy of the GNU Lesser General Public License
+# along with JObexFTP.  If not, see <http://www.gnu.org/licenses/>.
+#####
+# Script for sending and executing aplication in Cinterion modules. 
+# Needs: jobexftpfs.sh (that needs jobexftp (that needs java and JObexFTP.jar))
+# Change the /dev/ttyACM? to /dev/ttyS? to fit your system, if necessary.
+#####
+# Help improving this script, and DON'T FORGET TO SEND ME YOUR IMPROVMENTS! THANK YOU!
+# Written by Ricardo Guilherme Schmidt (3esmit@gmail.com) 
+
+
+
+#TODO: Autofind ttypath base (some linux is ttyACM* other is ttyS* other is ttyUSB*)
+ttypath=`ls /dev/ttyACM* | tail -n 1`
+currentdir=`dirname $(readlink -f $0)`
+for param in $* ; do
+echo $param
+    arg="${param#*:}"
+    par="${param%:*}"
+    
+    case "$par" in
+        -Xdomain) domain="$arg" ; shift;;
+        -Xdevice) device="$arg" ; shift;;
+        -Xdescriptor) jadpath="$arg" ; shift;;
+    esac
+done
+bash $currentdir/jobexftpfs.sh $ttypath $jadpath
+
