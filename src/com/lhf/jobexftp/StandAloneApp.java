@@ -19,23 +19,25 @@
  */
 package com.lhf.jobexftp;
 
-import com.lhf.obexftplib.etc.OBEXDevice;
+import com.lhf.jobexftp.ui.CommandFileUserInterface;
+import com.lhf.jobexftp.ui.CommandLineUserInterface;
+import com.lhf.jobexftp.ui.InteractiveUserInterface;
+import com.lhf.jobexftp.ui.TelnetUserInterface;
+import com.lhf.jobexftp.ui.UserInterface;
+import com.lhf.obexftplib.etc.Log;
 import com.lhf.obexftplib.etc.Utility;
 import com.lhf.obexftplib.fs.OBEXFile;
+import com.lhf.obexftplib.fs.OBEXFolder;
 import com.lhf.obexftplib.io.ATConnection;
 import com.lhf.obexftplib.io.OBEXClient;
-import gnu.io.NoSuchPortException;
-import gnu.io.PortInUseException;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.io.InputStream;
-import java.util.ArrayList;
-import java.util.EnumSet;
-import java.util.Iterator;
+import java.text.SimpleDateFormat;
+import java.util.Date;
+import java.util.List;
 import java.util.logging.Level;
-import java.util.logging.Logger;
 
 /*
  * TODO:
@@ -56,442 +58,221 @@ import java.util.logging.Logger;
  */
 public class StandAloneApp {
 
-    private static final Logger logger = Utility.getLogger();
-    private EnumSet<Option> options = EnumSet.noneOf(Option.class);
-    private EnumSet<Command> commands = EnumSet.noneOf(Command.class);
-    private ATConnection atConn = null;
-    private OBEXClient obexClient = null;
-    private boolean write = true;
-    private int atsleep = 0;
+    byte flowControl = ATConnection.FLOW_RTSCTS;
 
-    /**
-     * @param args the command line arguments
-     */
     public static void main(String[] args) {
-        if (args.length < 1) {
-            printDescription();
-            printUsage();
-            printCredits();
-            return;
-        }
-        if (args[0].startsWith("--")) {
-        } else {
-            StandAloneApp standAloneApp = new StandAloneApp(args);
-        }
-    }
-
-    public StandAloneApp(String[] args) {
-        processArgs(args);
-        execute();
-        close();
-    }
-
-    private void close() {
-        if (getAtConn() != null) {
-            try {
-                closeObexClient();
-                getAtConn().setConnMode(0);
-            } catch (IOException ex) {
-                logger.log(Level.SEVERE, null, ex);
+        try {
+            if (args.length == 0) {
+                printUsage();
+                System.exit(0);
             }
-        }
-    }
-
-    private void execute() {
-        for (Iterator<Option> it = options.iterator(); it.hasNext();) {
-            it.next().execute(this);
-        }
-        for (Iterator<Command> it = commands.iterator(); it.hasNext();) {
-            it.next().execute(this);
-        }
-    }
-
-    private void processArgs(String[] args) {
-        if (!args[0].startsWith("-")) {
-            try {
-                atConn = new ATConnection(args[0]);
-            } catch (NoSuchPortException ex) {
-                logger.log(Level.SEVERE, null, ex);
-            } catch (PortInUseException ex) {
-                logger.log(Level.SEVERE, null, ex);
+            for (String arg : args) {
+                if ("--help".equals(arg) || "-h".equals(arg)) {
+                    printUsage();
+                    System.exit(0);
+                } else if ("--version".equals(arg) || "-v".equals(arg)) {
+                    printVersion();
+                    System.exit(0);
+                }
             }
+            new StandAloneApp().exec(args);
+        } catch (Exception e) {
+            Log.info("PANIC", e);
         }
-        ArrayList<String> arg = new ArrayList<String>();
+    }
+    private String portname = "COM1";
+    private int baudrate = 115200;
+
+    public void exec(String[] args) throws Exception {
+        Log.logLevel = Log.LOG_INFO;
+//		Log.info("tc65sh v"+VERSION_STRING);
+        UserInterface ui = null;
         for (int i = 0; i < args.length; i++) {
-            if (args[i].startsWith("-")) {
-                int j = i + 1;
-                for (; j < args.length && !args[j].startsWith("-"); j++) {
-                    arg.add(args[j]);
+            if (args[i].equals("-p") || args[i].equals("--portname")) {
+                portname = args[i + 1];
+            } else if (args[i].equals("-b") || args[i].equals("--baudrate")) {
+                try {
+                    baudrate = Integer.parseInt(args[i + 1]);
+                } catch (NumberFormatException ex) {
+                    Utility.getLogger().severe("Could not convert baudrate value. Please insert only numbers");
                 }
-                String[] s = new String[arg.size()];
-                add(args[i].charAt(1), arg.toArray(s));
-                arg.clear();
-                i = --j;
-            }
-        }
-    }
-
-    private void add(char c, String[] args) {
-        if (Character.isUpperCase(c)) {
-            options.add(Option.getOption(c, args));
-        } else {
-            commands.add(Command.getCommand(c, args));
-        }
-    }
-
-    private void setDevice(String dev) {
-        if (dev.toLowerCase().indexOf("sie") > -1 || dev.toLowerCase().indexOf("cint") > -1 || dev.toLowerCase().indexOf("tc65") > -1) {
-            getAtConn().setDevice(OBEXDevice.TC65);
-        }
-    }
-
-    private void closeObexClient() {
-        try {
-            if (obexClient != null) {
-                obexClient.disconnect();
-                obexClient = null;
-            }
-            getAtConn().setConnMode(1);
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
-
-    }
-
-    private OBEXClient getObexClient() {
-        if (obexClient == null) {
-            try {
-                getAtConn().setConnMode(2);
-                obexClient = new OBEXClient(getAtConn());
-                obexClient.connect();
-            } catch (IOException ex) {
-                logger.log(Level.SEVERE, null, ex);
-            }
-
-        }
-        return obexClient;
-    }
-
-    private void listFolder(String[] args) {
-        try {
-            OBEXClient c = getObexClient();
-            if (args != null && args.length > 0 && !args[0].equalsIgnoreCase("")) {
-                c.changeDirectory(args[0], false);
-            }
-            if (write) {
-                System.out.print(c.loadFolderListing().getListing());
-            } else {
-                System.out.print(new String(c.loadFolderListing().getContents()));
-
-            }
-            if (args != null && args.length > 0 && !args[0].equalsIgnoreCase("")) {
-                c.changeDirectory("/", false);
-            }
-
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
-    }
-
-    private void uploadFile(String[] args) {
-        try {
-            OBEXClient c = getObexClient();
-            if (args != null && args.length > 0) {
-                String filenameS;
-                String path = "/";
-                File f;
-                if (!args[0].equalsIgnoreCase("")) {
-                    System.out.println("Sending " + args[0]);
-                    f = new File(args[0]);
-                    filenameS = f.getName();
-                } else {
-                    return;
+            } else if (args[i].equals("-w") || args[i].equals("--flowcontrol")) {
+                String w = args[i + 1].toLowerCase();
+                if (w.startsWith("none")) {
+                    flowControl = ATConnection.FLOW_NONE;
+                } else if (w.startsWith("xon")) {
+                    flowControl = ATConnection.FLOW_XONXOFF;
+                } else if (!w.startsWith("rts")) {
+                    Utility.getLogger().severe("Invalid flow control.");
                 }
-                if (args.length > 1 && !args[1].equalsIgnoreCase("")) {
-                    filenameS = Utility.getLastFolder(args[1]);
-                    if (filenameS == null || filenameS.equalsIgnoreCase("")) {
-                        filenameS = f.getName();
+            } else if (args[i].equals("-d") || args[i].equals("--debug")) {
+                Log.logLevel = Log.LOG_DEBUG;
+                Utility.getLogger().setLevel(Level.FINEST);
+            } else if (args[i].equals("-q") || args[i].equals("--quiet")) {
+                Log.logLevel = Log.LOG_NONE;
+                Utility.getLogger().setLevel(Level.OFF);
+            } else if (args[i].equals("-f") || args[i].equals("--file")) {
+                Log.info("processing command file " + args[i + 1]);
+                ui = new CommandFileUserInterface(new File(args[i + 1]));
+            } else if (args[i].equals("-c") || args[i].equals("--commands")) {
+                Log.info("processing commands " + args[i + 1]);
+                ui = new CommandLineUserInterface(args[i + 1]);
+            } else if (args[i].equals("-t") || args[i].equals("--telnet")) {
+                ui = new TelnetUserInterface(Integer.parseInt(args[i + 1]));
+            }
+        }
+
+        ATConnection device = new ATConnection(portname);
+        device.setBaudRate(baudrate);
+        try {
+            Log.info("connecting to serial " + portname + " " + baudrate);
+            device.setConnMode(ATConnection.MODE_DATA);
+            device.setFlowControl(flowControl);
+            OBEXClient obexClient = new OBEXClient(device);
+            Log.info("connecting obex");
+            obexClient.connect();
+            if (ui == null) {
+                ui = new InteractiveUserInterface();
+                Log.info("starting interactive mode, type 'exit' to exit, 'help' for help.");
+            }
+            run(obexClient, ui);
+            Log.info("disconnecting obex");
+            obexClient.disconnect();
+            Log.info("disconnecting serial port");
+            device.setConnMode(ATConnection.MODE_DISCONNECTED);
+        } catch (Exception e) {
+            e.printStackTrace();
+        }
+    }
+
+    private void run(OBEXClient device, UserInterface ui) {
+        try {
+            String cmdline;
+            while ((cmdline = ui.readCommand()) != null) {
+                cmdline = cmdline.trim();
+                Log.debug(getClass(), "executing command '" + cmdline + "'");
+                String tok[] = Utility.split(cmdline);
+                if (tok[0].equals("cd")) {
+                    // cd <deviceDirectory>
+                    if (tok.length > 1) {
+                        device.changeDirectory(tok[1], false);
                     }
-                    path = Utility.removeLastFolder(args[1]);
-                    c.changeDirectory(path, false);
-                }
-
-                OBEXFile file = new OBEXFile(filenameS);
-                InputStream is = new FileInputStream(f);
-                file.setInputStream(is);
-                c.writeFile(file);
-                c.changeDirectory("/", false);
-            }
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
-    }
-    private void createFolder(String[] args) {
-        try {
-            OBEXClient c = getObexClient();
-            if (args != null && args.length > 0 && !args[0].equalsIgnoreCase("")) {
-                c.changeDirectory(args[0], true);
-                c.changeDirectory("/", false);
-            }
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
-    }
-
-    private void deleteFile(String[] args) {
-        try {
-            OBEXClient c = getObexClient();
-            if (args != null && args.length > 0 && !args[0].equalsIgnoreCase("")) {
-                String filenameS;
-                String path = "/";
-                filenameS = Utility.getLastFolder(args[0]);
-                path = Utility.preparePath(Utility.removeLastFolder(args[0]));
-                c.changeDirectory(path, false);
-                boolean b = c.removeObject(new OBEXFile(Utility.createSimbolicFolderTree(path), filenameS));
-                System.out.println("Removed " + filenameS + " in " + c.getCurrentFolder().getPath() + (b ? " with success" : "with error"));
-
-                c.changeDirectory("/", false);
-            }
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
-    }
-
-    private void downloadFile(String[] args) {
-        try {
-            OBEXClient c = getObexClient();
-            if (args != null && args.length > 0 && !args[0].equalsIgnoreCase("")) {
-                String filenameS, folder;
-                String path = Utility.preparePath(args[0]);
-                filenameS = Utility.getLastFolder(path);
-                folder = Utility.removeLastFolder(path);
-                c.changeDirectory(folder, false);
-                byte[] r = c.readFile(filenameS).getContents();
-                c.changeDirectory("/", false);
-                if (write) {
-                    String savePath;
-                    if (args.length > 1 && !args[1].equalsIgnoreCase("")) {
-                        savePath = args[1];
-                    } else {
-                        savePath = "." + File.separator + filenameS;
+                    ui.setDir(device.getCurrentFolder().getPath());
+                } else if (tok[0].equals("mkdir")) {
+                    // mkdir <directory>
+                    if (tok.length > 1) {
+                        device.changeDirectory(tok[1], true);
                     }
-                    File file = new File(savePath);
-                    if (file.isDirectory()) {
-                        file = new File(savePath + File.separator + filenameS);
+                    ui.setDir(device.getCurrentFolder().getPath());
+                } else if (tok[0].equals("ls") || tok[0].equals("dir")) {
+                    // ls
+                    ui.println(device.loadFolderListing().getListing());
+                } else if (tok[0].equals("rm") || tok[0].equals("del")) {
+                    // rm <deviceFilename>
+                    if (tok.length > 1) {
+                        device.removeObject(Utility.nameToBytes(tok[1]));
                     }
-                    FileOutputStream f = new FileOutputStream(file);
-                    f.write(r);
-                    f.close();
-                } else {
-                    System.out.println(new String(r));
+                } else if (tok[0].equals("put")) {
+                    // put <localFilePath> <deviceFilename>
+                    if (tok.length > 2) {
+                        OBEXFile fileHolder = loadLocalFile(tok[1]);
+                        device.removeObject(fileHolder);
+                        device.writeFile(fileHolder);
+                    }
+                } else if (tok[0].equals("get")) {
+                    // get <deviceFilename> <localFilePath>
+                    if (tok.length > 2) {
+                        OBEXFile fh = device.readFile(tok[1]);
+                        saveLocalFile(fh);
+                    }
+                } else if (tok[0].equals("cat")) {
+                    // cat <deviceFilename>
+                    if (tok.length > 1) {
+                        OBEXFile fh = device.readFile(tok[1]);
+                        String catString = new String(fh.getContents());
+                        ui.println(catString);
+                    }
+                } else if (tok[0].equals("erasedisk")) {
+                    // erasedisk
+                     if (tok.length > 1) {
+
+                     }else{
+
+                     }
+                    device.eraseDisk();
+                } else if (tok[0].equals("help")) {
+                    printHelp(ui);
                 }
             }
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, null, ex);
+        } catch (Exception e) {
+            e.printStackTrace();
         }
     }
 
-    private void prompt() {
-        throw new UnsupportedOperationException("Not yet implemented");
-    }
-
-    private void eraseDisk() {
-        try {
-            OBEXClient c = getObexClient();
-            c.eraseDisk();
-        } catch (IOException ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
-    }
-
-    private void sendAtc(String[] args) {
-        try {
-            if (args != null && args.length > 0) {
-                closeObexClient();
-                for (int i = 0; i < args.length; i++) {
-                    Thread.sleep(atsleep);
-                    getAtConn().send((args[i] + "\r").getBytes(), 5000);
-                }
-            }
-        } catch (Exception ex) {
-            logger.log(Level.SEVERE, null, ex);
-        }
-    }
-
-    private void showVersion() {
-        printVersion();
-    }
-
-    /**
-     * @return the atConn
-     */
-    public ATConnection getAtConn() {
-        return atConn;
-    }
-
-    private enum Option {
-
-        FLOWCONTROL('F'), BAUDRATE('B'), MANUFACTER('D'), LOG_LEVEL('V'), DONTWRITE('S'), ATSLEEP('Z');
-        private final char d;
-        private String[] args;
-
-        private Option(char d) {
-            this.d = d;
-        }
-
-        static Option getOption(char c, String[] args) {
-            Option[] cs = values();
-            Option r = null;
-            for (int i = 0; i < cs.length; i++) {
-                Option options = cs[i];
-                if (options.d == c) {
-                    r = options;
-                    r.args = args;
-                }
-            }
-            return r;
-        }
-
-        public void execute(StandAloneApp app) {
-            try {
-                switch (this) {
-                    case BAUDRATE:
-                        app.getAtConn().setBaudRate(Integer.parseInt(args[0]));
-                        break;
-                    case DONTWRITE:
-                        app.write = false;
-                        break;
-                    case FLOWCONTROL:
-                        app.getAtConn().setFlowControl(Byte.parseByte(args[0]));
-                        break;
-                    case MANUFACTER:
-                        app.setDevice(args[0]);
-                        break;
-                    case LOG_LEVEL:
-                        Utility.configLogger(Level.parse(args[0]));
-                        break;
-                    case ATSLEEP:
-                        app.atsleep = Integer.parseInt(args[0]);
-                        break;
-                }
-            } catch (Throwable t) {
-                t.printStackTrace();
-                System.err.println("Error processing option " + this.d + ". Message: " + t.getClass().getName());
-            }
-        }
-    }
-
-    private enum Command {
-
-        LISTFOLDER('l'), UPLOADFILE('u'), CREATEFOLDER('c'), DOWNLOADFILE('d'), DELETEFILE('r'), PROMPT('i'), ERASEDISK('f'), SENDATC('a'), SHOWVERSION('v');
-        private final char d;
-        private ArrayList<String[]> args = new ArrayList<String[]>();
-
-        private Command(char d) {
-            this.d = d;
-        }
-
-        public void execute(StandAloneApp app) {
-            try {
-                switch (this) {
-                    case LISTFOLDER:
-                        for (Iterator<String[]> it = args.iterator(); it.hasNext();) {
-                            app.listFolder(it.next());
-                        }
-                        break;
-                    case UPLOADFILE:
-                        for (Iterator<String[]> it = args.iterator(); it.hasNext();) {
-                            app.uploadFile(it.next());
-                        }
-                        break;
-                    case CREATEFOLDER:
-                        for (Iterator<String[]> it = args.iterator(); it.hasNext();) {
-                            app.createFolder(it.next());
-                        }
-                        break;
-                    case DELETEFILE:
-                        for (Iterator<String[]> it = args.iterator(); it.hasNext();) {
-                            app.deleteFile(it.next());
-                        }
-                        break;
-                    case DOWNLOADFILE:
-                        for (Iterator<String[]> it = args.iterator(); it.hasNext();) {
-                            app.downloadFile(it.next());
-                        }
-                        break;
-                    case PROMPT:
-                        app.prompt();
-                        break;
-                    case ERASEDISK:
-                        app.eraseDisk();
-                        break;
-                    case SENDATC:
-                        for (Iterator<String[]> it = args.iterator(); it.hasNext();) {
-                            app.sendAtc(it.next());
-                        }
-                        break;
-                    case SHOWVERSION:
-                        app.showVersion();
-                        break;
-                }
-            } catch (Throwable t) {
-                t.printStackTrace();
-
-                System.err.println("Error processing command " + this.d + "." + "Message: " + t.getClass().getName());
-            }
-        }
-
-        static Command getCommand(char c, String[] args) {
-            Command[] cs = values();
-            Command r = null;
-            for (int i = 0; i < cs.length; i++) {
-                Command commands = cs[i];
-                if (commands.d == c) {
-                    r = commands;
-                    r.args.add(args);
-                }
-            }
-            return r;
-        }
-    }
-
-    private static void printDescription() {
-        System.out.println("JObexFTP " + OBEXClient.version + " (15/10/2010)");
-        System.out.println("Java Obex File Transfer Protocol application and library");
-        System.out.println("Developed under/using 100% free software.");
-        System.out.println("For more information access: http://www.lhf.ind.br/jobexftp/");
+    private void printHelp(UserInterface ui) {
+        ui.println("available commands:");
+        ui.println("  cd <directory>");
+        ui.println("  mkdir <directory>");
+        ui.println("  dir (or ls)");
+        ui.println("  put <localFilepath> <deviceFilename>");
+        ui.println("  get <deviceFilename> <localFilepath>");
+        ui.println("  rm (or del) <deviceFilename>");
+        ui.println("  erasedisk (Attention!! Clears all content!!)");
+        ui.println("  help");
+        ui.println("  exit");
     }
 
     private static void printUsage() {
+        printDescription();
         System.out.println();
-        System.out.println("Usage: jobexftp <serialPort> [<commands>] [<options>]");
-        System.out.println("Commands");
-        System.out.println(" -l [<folderPath>]             \tList folder [in choosen <folderPath>]");
-        System.out.println(" -u <localFile> [<devicePath>] \tWrites the file in <localPath> to [<devicePath> in] device.");
-        System.out.println(" -c <folderPath>               \tCreate <folderPath> structure in device");
-        System.out.println(" -d <devicePath> [<localPath>] \tDownload file from device [and move it to <localPath>]");
-        System.out.println(" -r <remotePath>               \tDelete the file or folder in device");
-        System.out.println(" -i                            \tPrompts an interactive command line to device");
-        System.out.println(" -f                            \tErases the device's flash filesystem");
-        System.out.println(" -a <atc1> <atc2>...     \tSend at commands to device");
-        System.out.println(" -v                            \tPrint out the version");
+        System.out.println("usage:");
+        System.out.println("  jobexftp -p PORT [mode] [options]");
         System.out.println();
-        System.out.println("Options");
-        System.out.println(" -F <flowControl>              \tSet the flowcontrol to be used");
-        System.out.println(" -B <baudRate>                 \tPrint out the version");
-        System.out.println(" -V <logLevel>                 \tDefine console loglevel verbose.");
-        System.out.println(" -D <manufacturer>             \tDefines manually the manufacturer device profile.");
-        System.out.println(" -S                            \tDon\'t write files to local disk, just print them.");
-        System.out.println(" -Z <time>                     \tTime to sleep (ms) in each atcmd sent by -a option");
 
+        System.out.println("MODES are:");
+        System.out.println("  -f --file <commandFile>");
+        System.out.println("  -c --commands <command1;command2;...>");
+        System.out.println("  -t --telnet <telnetPort>");
+
+        System.out.println("OPTIONS are:");
+        System.out.println("  -b --baudrate <baudrate>");
+        System.out.println("  -w --flowcontrol <flowcontrol>");
+        System.out.println("  -d --debug");
+        System.out.println("  -q --quiet");
+        System.out.println("  -h --help");
+        System.out.println("  -v --version");
+        System.out.println();
+        printCredits();
+    }
+
+    private OBEXFile loadLocalFile(String filepath) throws IOException {
+        File f = new File(filepath);
+        FileInputStream in = new FileInputStream(f);
+        byte[] buf = new byte[(int) f.length()];
+        in.read(buf);
+        in.close();
+        OBEXFile file = new OBEXFile(f.getName());
+        file.setContents(buf);
+        return file;
+    }
+
+    private void saveLocalFile(OBEXFile fileHolder) throws IOException {
+        File f = new File(fileHolder.getName());
+        FileOutputStream out = new FileOutputStream(f);
+        out.write(fileHolder.getContents());
+        out.close();
+    }
+
+    private static void printDescription() {
+        System.out.println("JObexFTP " + OBEXClient.version + " (29/01/2011)");
+        System.out.println("Java Obex File Transfer Protocol.");
+        System.out.println("http://www.github.com/3esmit/jobexftp/");
     }
 
     private static void printCredits() {
-        System.out.println();
-        System.out.println("LHF JObexFTP Copyright (C) 2010 Ricardo Guilherme Schmidt <ricardo@lhf.ind.br>");
-        System.out.println("This program comes with ABSOLUTELY NO WARRANTY; for details type `jobexftp --w'.");
+        System.out.println("JObexFTP Copyright (C) 2010 Ricardo Guilherme Schmidt <3esmit@gmail.com>");
         System.out.println("This is free software, and you are welcome to redistribute it under certain");
-        System.out.println("conditions; type `jobexftp --c' for details.\n\n");
+        System.out.println("conditions;");
     }
 
     private static void printVersion() {

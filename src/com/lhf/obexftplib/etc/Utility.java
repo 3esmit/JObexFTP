@@ -106,6 +106,44 @@ public final class Utility {
         return r;
     }
 
+    public static String[] split(String input) {
+        if (!input.contains("\"")) {
+            return input.split(" ");
+        }
+        ArrayList<String> l = new ArrayList<String>();
+        boolean isInQuotes = false;
+        String stack = "";
+        for (int i = 0; i < input.length(); i++) {
+            if (input.charAt(i) == '\"') {
+                if (isInQuotes) {
+                    if (stack.length() > 0) {
+                        l.add(stack);
+                        stack = "";
+                    }
+                    isInQuotes = false;
+                } else {
+                    isInQuotes = true;
+                }
+            } else if (input.charAt(i) == ' ') {
+                if (isInQuotes) {
+                    stack += " ";
+                } else {
+                    if (stack.length() > 0) {
+                        l.add(stack);
+                        stack = "";
+                    }
+                }
+            } else {
+                stack += input.charAt(i);
+            }
+        }
+        if (stack.length() > 0) {
+            l.add(stack);
+            stack = "";
+        }
+        return l.toArray(new String[l.size()]);
+    }
+
     /**
      * convert integer to byte array
      *
