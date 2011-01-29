@@ -58,15 +58,20 @@ import java.util.logging.Level;
  */
 public class StandAloneApp {
 
+    byte flowControl = ATConnection.FLOW_RTSCTS;
+
     public static void main(String[] args) {
         try {
             if (args.length == 0) {
-                new StandAloneApp().printUsage();
+                printUsage();
                 System.exit(0);
             }
             for (String arg : args) {
                 if ("--help".equals(arg) || "-h".equals(arg)) {
-                    new StandAloneApp().printUsage();
+                    printUsage();
+                    System.exit(0);
+                } else if ("--version".equals(arg) || "-v".equals(arg)) {
+                    printVersion();
                     System.exit(0);
                 }
             }
@@ -86,7 +91,20 @@ public class StandAloneApp {
             if (args[i].equals("-p") || args[i].equals("--portname")) {
                 portname = args[i + 1];
             } else if (args[i].equals("-b") || args[i].equals("--baudrate")) {
-                baudrate = Integer.parseInt(args[i + 1]);
+                try {
+                    baudrate = Integer.parseInt(args[i + 1]);
+                } catch (NumberFormatException ex) {
+                    Utility.getLogger().severe("Could not convert baudrate value. Please insert only numbers");
+                }
+            } else if (args[i].equals("-w") || args[i].equals("--flowcontrol")) {
+                String w = args[i + 1].toLowerCase();
+                if (w.startsWith("none")) {
+                    flowControl = ATConnection.FLOW_NONE;
+                } else if (w.startsWith("xon")) {
+                    flowControl = ATConnection.FLOW_XONXOFF;
+                } else if (!w.startsWith("rts")) {
+                    Utility.getLogger().severe("Invalid flow control.");
+                }
             } else if (args[i].equals("-d") || args[i].equals("--debug")) {
                 Log.logLevel = Log.LOG_DEBUG;
                 Utility.getLogger().setLevel(Level.FINEST);
@@ -109,6 +127,7 @@ public class StandAloneApp {
         try {
             Log.info("connecting to serial " + portname + " " + baudrate);
             device.setConnMode(ATConnection.MODE_DATA);
+            device.setFlowControl(flowControl);
             OBEXClient obexClient = new OBEXClient(device);
             Log.info("connecting obex");
             obexClient.connect();
@@ -175,6 +194,11 @@ public class StandAloneApp {
                     }
                 } else if (tok[0].equals("erasedisk")) {
                     // erasedisk
+                     if (tok.length > 1) {
+
+                     }else{
+
+                     }
                     device.eraseDisk();
                 } else if (tok[0].equals("help")) {
                     printHelp(ui);
@@ -198,26 +222,27 @@ public class StandAloneApp {
         ui.println("  exit");
     }
 
-    private void printUsage() {
+    private static void printUsage() {
+        printDescription();
+        System.out.println();
         System.out.println("usage:");
-        System.out.println("  tc65sh [OPTIONS]");
-        System.out.println("");
-        System.out.println("OPTIONS are:");
-        System.out.println("  -p --portname <portname>");
-        System.out.println("  -b --baudrate <baudrate>");
-        System.out.println("  -d --debug");
-        System.out.println("  -q --quiet");
+        System.out.println("  jobexftp -p PORT [mode] [options]");
+        System.out.println();
+
+        System.out.println("MODES are:");
         System.out.println("  -f --file <commandFile>");
         System.out.println("  -c --commands <command1;command2;...>");
         System.out.println("  -t --telnet <telnetPort>");
-        System.out.println("  -h --help");
-    }
 
-    private String pad10(String s) {
-        while (s.length() < 10) {
-            s = " " + s;
-        }
-        return s;
+        System.out.println("OPTIONS are:");
+        System.out.println("  -b --baudrate <baudrate>");
+        System.out.println("  -w --flowcontrol <flowcontrol>");
+        System.out.println("  -d --debug");
+        System.out.println("  -q --quiet");
+        System.out.println("  -h --help");
+        System.out.println("  -v --version");
+        System.out.println();
+        printCredits();
     }
 
     private OBEXFile loadLocalFile(String filepath) throws IOException {
@@ -239,42 +264,15 @@ public class StandAloneApp {
     }
 
     private static void printDescription() {
-        System.out.println("JObexFTP " + OBEXClient.version + " (15/10/2010)");
-        System.out.println("Java Obex File Transfer Protocol application and library");
-        System.out.println("Developed under/using 100% free software.");
-        System.out.println("For more information access: http://www.lhf.ind.br/jobexftp/");
-    }
-
-    private static void printUsages() {
-        System.out.println();
-        System.out.println("Usage: jobexftp <serialPort> [<commands>] [<options>]");
-        System.out.println("Commands");
-        System.out.println(" -l [<folderPath>]             \tList folder [in choosen <folderPath>]");
-        System.out.println(" -u <localFile> [<devicePath>] \tWrites the file in <localPath> to [<devicePath> in] device.");
-        System.out.println(" -c <folderPath>               \tCreate <folderPath> structure in device");
-        System.out.println(" -d <devicePath> [<localPath>] \tDownload file from device [and move it to <localPath>]");
-        System.out.println(" -r <remotePath>               \tDelete the file or folder in device");
-        System.out.println(" -i                            \tPrompts an interactive command line to device");
-        System.out.println(" -f                            \tErases the device's flash filesystem");
-        System.out.println(" -a <atc1> <atc2>...     \tSend at commands to device");
-        System.out.println(" -v                            \tPrint out the version");
-        System.out.println();
-        System.out.println("Options");
-        System.out.println(" -F <flowControl>              \tSet the flowcontrol to be used");
-        System.out.println(" -B <baudRate>                 \tPrint out the version");
-        System.out.println(" -V <logLevel>                 \tDefine console loglevel verbose.");
-        System.out.println(" -D <manufacturer>             \tDefines manually the manufacturer device profile.");
-        System.out.println(" -S                            \tDon\'t write files to local disk, just print them.");
-        System.out.println(" -Z <time>                     \tTime to sleep (ms) in each atcmd sent by -a option");
-
+        System.out.println("JObexFTP " + OBEXClient.version + " (29/01/2011)");
+        System.out.println("Java Obex File Transfer Protocol.");
+        System.out.println("http://www.github.com/3esmit/jobexftp/");
     }
 
     private static void printCredits() {
-        System.out.println();
-        System.out.println("LHF JObexFTP Copyright (C) 2010 Ricardo Guilherme Schmidt <ricardo@lhf.ind.br>");
-        System.out.println("This program comes with ABSOLUTELY NO WARRANTY; for details type `jobexftp --w'.");
+        System.out.println("JObexFTP Copyright (C) 2010 Ricardo Guilherme Schmidt <3esmit@gmail.com>");
         System.out.println("This is free software, and you are welcome to redistribute it under certain");
-        System.out.println("conditions; type `jobexftp --c' for details.\n\n");
+        System.out.println("conditions;");
     }
 
     private static void printVersion() {
