@@ -17,22 +17,25 @@ package com.lhf.jobexftp.ui;
 
 public interface UserInterface {
 
-	/**
-	 * Next command or null if no more commands are available.
-	 */
-	public String readCommand();
-	
-	/**
-	 * Prints a message to the user.
-	 */
-	public void println(String message);
-	
-	/**
-	 * Prints a message and a Throwable stack trace to the user.
-	 */
-	public void println(String message, Throwable throwable);
+    /**
+     * Next command or null if no more commands are available.
+     */
+    public String readCommand();
 
+    /**
+     * Prints a message to the user.
+     */
+    public void println(String message);
 
-        public void setDir(String dir);
-	
+    /**
+     * Prints a message and a Throwable stack trace to the user.
+     */
+    public void println(String message, Throwable throwable);
+
+    /**
+     * Prints the current command line to the user.
+     */
+    public void echoCommand(String cmdline);
+
+    public void setDir(String dir);
 }

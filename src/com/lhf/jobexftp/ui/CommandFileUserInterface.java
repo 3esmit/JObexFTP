@@ -34,46 +34,53 @@ import java.util.LinkedList;
  */
 public class CommandFileUserInterface implements UserInterface {
 
-	private LinkedList<String> commands = new LinkedList<String>();
-	
-	public CommandFileUserInterface(File inputFile) throws IOException {
-		LineNumberReader r = null;
-		try {
-			r = new LineNumberReader(new InputStreamReader(new FileInputStream(inputFile)));
-			String line;
-			while( (line=r.readLine()) != null ) {
-				line = line.trim();
-				if ( line.length() > 0 && ! line.startsWith("#") && ! line.startsWith("//") ) {
-					commands.add(line);
-				}
-			}
-		} finally {
-			if ( r != null ) r.close();
-		}
-	}
-	
-	@Override
-	public String readCommand() {
-		if ( commands.isEmpty() ) return null;
-		return commands.removeFirst();
-	}
+    private LinkedList<String> commands = new LinkedList<String>();
 
-	@Override
-	public void println(String message) {
-		println(message, null);
-	}
+    public CommandFileUserInterface(File inputFile) throws IOException {
+        LineNumberReader r = null;
+        try {
+            r = new LineNumberReader(new InputStreamReader(new FileInputStream(inputFile)));
+            String line;
+            while ((line = r.readLine()) != null) {
+                line = line.trim();
+                if (line.length() > 0 && !line.startsWith("#") && !line.startsWith("//")) {
+                    commands.add(line);
+                }
+            }
+        } finally {
+            if (r != null) {
+                r.close();
+            }
+        }
+    }
 
-	@Override
-	public void println(String message, Throwable t) {
-		System.out.println(message);
-		if ( t != null ) {
-			t.printStackTrace(System.out);
-		}
-	}
+    @Override
+    public String readCommand() {
+        if (commands.isEmpty()) {
+            return null;
+        }
+        return commands.removeFirst();
+    }
+
+    @Override
+    public void println(String message) {
+        println(message, null);
+    }
+
+    @Override
+    public void println(String message, Throwable t) {
+        System.out.println(message);
+        if (t != null) {
+            t.printStackTrace(System.out);
+        }
+    }
+
+    @Override
+    public void echoCommand(String cmdline) {
+        System.out.println(cmdline);
+    }
 
     public void setDir(String dir) {
 //        throw new UnsupportedOperationException("Not supported yet.");
     }
-
-	
 }

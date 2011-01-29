@@ -84,9 +84,7 @@ echo " JAD $jadpath "
 echo " JAR $jarpath "
 echo " Sending files with `jobexftp -v`:"
 echo "`fuser -k $ttypath`"
-bash $currentdir/jobexftp $ttypath -r $jarfile -r $jadfile 
-bash $currentdir/jobexftp $ttypath -u $jarpath -u $jadpath
-sleep 0.5
+bash $currentdir/jobexftp -p $ttypath -c "rm $jadfile;rm $jarfile;put $jarpath;put $jadpath;sleep 500;" 
 echo -e -n "AT^SJRA=A:/$jarfile\r" > $ttypath && tail $ttypath
 #TODO better handle this. For some reason cat pulls out here, so while loop is needed.
 while [ -e $ttypath ]

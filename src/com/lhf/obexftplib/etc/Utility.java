@@ -25,6 +25,7 @@ import com.lhf.obexftplib.io.obexop.Response;
 import gnu.io.CommPortIdentifier;
 import gnu.io.NoSuchPortException;
 import java.io.ByteArrayOutputStream;
+import java.io.IOException;
 import java.text.DateFormat;
 import java.text.SimpleDateFormat;
 import java.util.ArrayList;
@@ -56,6 +57,28 @@ public final class Utility {
 
     public static Logger getLogger() {
         return OBEXLOGGER;
+    }
+
+    public static String readStandardInput() {
+        StringBuilder buf = new StringBuilder();
+        while (true) {
+            try {
+                int c = System.in.read();
+                if (c != 13) {
+                    if (c == 10) {
+                        break;
+                    } else {
+                        buf.append((char) c);
+                    }
+                }
+                if (c == -1) {
+                    return null;
+                }
+            } catch (IOException e) {
+                throw new RuntimeException(e);
+            }
+        }
+        return buf.toString();
     }
 
     /**

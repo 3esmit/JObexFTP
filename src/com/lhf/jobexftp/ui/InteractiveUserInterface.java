@@ -15,6 +15,7 @@
 // 
 package com.lhf.jobexftp.ui;
 
+import com.lhf.obexftplib.etc.Utility;
 import java.io.IOException;
 
 public class InteractiveUserInterface implements UserInterface {
@@ -24,25 +25,7 @@ public class InteractiveUserInterface implements UserInterface {
     @Override
     public String readCommand() {
         System.out.print(dir + "/>");
-        StringBuilder buf = new StringBuilder();
-        String command = null;
-        while (command == null) {
-            try {
-                int c = System.in.read();
-                if (c != 13) {
-                    if (c == 10) {
-                        command = buf.toString();
-                    } else {
-                        buf.append((char) c);
-                    }
-                }
-                if (c == -1) {
-                    return null;
-                }
-            } catch (IOException e) {
-                throw new RuntimeException(e);
-            }
-        }
+        String command = Utility.readStandardInput();
         if (command != null && command.trim().equals("exit")) {
             command = null;
         }
@@ -60,6 +43,10 @@ public class InteractiveUserInterface implements UserInterface {
         if (t != null) {
             t.printStackTrace(System.out);
         }
+    }
+
+    @Override
+    public void echoCommand(String cmdline) {
     }
 
     public void setDir(String dir) {

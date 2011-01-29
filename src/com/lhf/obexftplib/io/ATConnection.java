@@ -1,5 +1,5 @@
 /**
- * Last updated in 21/Out/2010
+ * Last updated in 29/Jan/2011
  *
  *    This file is part of JObexFTP.
  *
@@ -111,6 +111,7 @@ public class ATConnection {
      * @param commPortIdentifier
      */
     public ATConnection(final CommPortIdentifier commPortIdentifier) {
+        System.setProperty("gnu.io.rxtx.NoVersionOutput", "true");
         this.commPortIdentifier = commPortIdentifier;
     }
 
@@ -137,10 +138,10 @@ public class ATConnection {
                     open();
                 } catch (UnsupportedCommOperationException ex) {
                     terminate();
-                    throw new IOException("Operação não suportada: " + ex.getMessage(), ex);
+                    throw new IOException("Operation not supported: " + ex.getMessage(), ex);
                 } catch (PortInUseException ex) {
                     terminate();
-                    throw new IOException("A porta " + commPortIdentifier.getName() + " está em uso", ex);
+                    throw new IOException("The port " + commPortIdentifier.getName() + "is in use.", ex);
                 }
                 if (newConnMode == MODE_DATA) {
                     connMode = openDataMode() ? MODE_DATA : connMode;
@@ -204,7 +205,7 @@ public class ATConnection {
                 LOGGER.log(Level.FINE, "Found TC65 device.");
                 setDevice(OBEXDevice.TC65);
             } else {
-                LOGGER.log(Level.WARNING, "Unknown device" + s + ", using default settings");
+                LOGGER.log(Level.WARNING, "Unknown device {0}, using default settings", s);
                 setDevice(OBEXDevice.DEFAULT);
             }
         }
@@ -214,6 +215,7 @@ public class ATConnection {
     /**
      * Method used to auto identify the device, if it is not yet identified.
      */
+    @Deprecated
     public boolean identifyDevice(byte[] b) throws IOException {
         if (device == null && connMode == MODE_AT) {
             String s = new String(b);
@@ -378,8 +380,9 @@ public class ATConnection {
         if (send(OBEXDevice.CMD_CHECK, 50).length < 1) {
             closeDataMode();
         }
+        send(OBEXDevice.CMD_CHECK, 50);
         send(new byte[]{'A', 'T', 'E', '\r'}, 50);
-        send(new byte[]{'A', 'T', 'E', '\r'}, 50);
+        send(OBEXDevice.CMD_CHECK, 50);
         send(OBEXDevice.CMD_CHECK, 50);
         send(OBEXDevice.CMD_CHECK, 50);
     }
