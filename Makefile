@@ -8,7 +8,6 @@ JOPTS=-d builddir
 JAVA=/usr/bin/java
 BINARY=jobexftp.jar
 JAR=jar
-
 all: clean $(BINARY)
 
 clean:
@@ -24,3 +23,10 @@ builddir:
 $(BINARY): builddir
 	# packaging $(BINARY)
 	$(JAR) cfe $(BINARY) com.lhf.jobexftp.StandAloneApp -C builddir com
+
+install:
+	if ! test `whoami` = "root" ; then echo "you need root privileges" ; exit 0 ; fi
+	mkdir -p /usr/share/jobexftp/lib 
+	if test -e $(BINARY) ; then mv $(BINARY) /usr/share/jobexftp/ ; rm /usr/bin/jobexftp ; echo "java -Djava.library.path=/usr/share/jobexftp/lib/ -cp /usr/share/jobexftp/RXTXcomm.jar -jar /usr/share/jobexftp/jobexftp.jar $*" > /usr/bin/jobexftp ; chmod +x /usr/bin/jobexftp ; fi
+	if test `uname -m` = "x86_64" ; then cp lib/x86_64/lib* /usr/share/jobexftp/lib/ ; cp lib/x86_64/RXTXcomm.jar /usr/share/jobexftp/ ; else cp lib/i386/lib* /usr/share/jobexftp/lib/ ; cp lib/i386/RXTXcomm.jar /usr/share/jobexftp/ ; fi
+	rm -R builddir
