@@ -53,7 +53,7 @@ if [ -a $ttypath ]; then
 	echo "Killing all process using $ttypath :"
 	echo "`fuser -k $ttypath`"
 	stty -F $ttypath raw ispeed 115200 ospeed 115200 min 1 time 0 -cstopb -evenp crtscts
-	echo "Checking if tc65 is working :"
+	echo "Checking if tc65 is ready :"
 	device=`echo -e "AT+CGMM\r" > $ttypath && timeout 1 cat $ttypath | head -n 2 | tail -n 1 | head -c 4`
 
 	if [[ $device == "" ]]; then
@@ -71,11 +71,11 @@ if [ -a $ttypath ]; then
 	fi
 
 	if [[ $device != "TC65" ]]; then
-		echo " Failed to find a working device. "
+		echo " Failed to find a ready device. "
 		exit 0
 	fi
 else
-	echo " Failed to find a working device. "
+	echo " Failed to find a device ready for communication. "
 	exit 0
 fi
  

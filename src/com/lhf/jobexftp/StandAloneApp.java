@@ -27,16 +27,12 @@ import com.lhf.jobexftp.ui.UserInterface;
 import com.lhf.obexftplib.etc.Log;
 import com.lhf.obexftplib.etc.Utility;
 import com.lhf.obexftplib.fs.OBEXFile;
-import com.lhf.obexftplib.fs.OBEXFolder;
 import com.lhf.obexftplib.io.ATConnection;
 import com.lhf.obexftplib.io.OBEXClient;
 import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
-import java.text.SimpleDateFormat;
-import java.util.Date;
-import java.util.List;
 import java.util.logging.Level;
 
 /**
@@ -44,8 +40,6 @@ import java.util.logging.Level;
  * @author Ricardo Guilherme Schmidt <ricardo@lhf.ind.br>, Christoph Vilsmeier <cv _at_ vilsmeier _minus_ consulting _dot_ de>
  */
 public class StandAloneApp {
-
-    private static final String VERSION_STRING = "1.2.0";
 
     public static void main(String[] args) {
         try {
@@ -63,8 +57,12 @@ public class StandAloneApp {
                 }
             }
             new StandAloneApp().exec(args);
+        } catch (gnu.io.NoSuchPortException e) {
+            Log.info("Fatal: Port is unavaliable.", e);
+            System.exit(1);
         } catch (Exception e) {
-            Log.info("PANIC", e);
+            Log.info("Fatal: ", e);
+            System.exit(1);
         }
     }
 
@@ -189,22 +187,21 @@ public class StandAloneApp {
             Log.info("Please specify the port.");
             System.exit(0);
         }
+
         ATConnection device = new ATConnection(portname);
         device.setBaudRate(baudrate);
         device.setFlowControl(flowControl);
+        Log.info("connecting to serial " + portname + " " + baudrate);
         try {
-            Log.info("connecting to serial " + portname + " " + baudrate);
             device.setConnMode(ATConnection.MODE_DATA);
             if (ui == null) {
                 ui = new InteractiveUserInterface();
                 Log.info("starting interactive mode, type 'exit' to exit, 'help' for help.");
             }
             run(device, ui);
-
+        } finally {
             Log.info("disconnecting serial port");
             device.setConnMode(ATConnection.MODE_DISCONNECTED);
-        } catch (Exception e) {
-            e.printStackTrace();
         }
     }
 
@@ -234,47 +231,39 @@ public class StandAloneApp {
                         obexClient.connect();
                     }
                     if (tok[0].equals("cd")) {
-                        // cd <deviceDirectory>
                         if (tok.length > 1) {
                             obexClient.changeDirectory(tok[1], false);
                         }
                         ui.setDir(obexClient.getCurrentFolder().getPath());
                     } else if (tok[0].equals("mkdir")) {
-                        // mkdir <directory>
                         if (tok.length > 1) {
                             obexClient.changeDirectory(tok[1], true);
                         }
                         ui.setDir(obexClient.getCurrentFolder().getPath());
                     } else if (tok[0].equals("ls") || tok[0].equals("dir")) {
-                        // ls
                         ui.println(obexClient.loadFolderListing().getListing());
                     } else if (tok[0].equals("rm") || tok[0].equals("del")) {
-                        // rm <deviceFilename>
                         if (tok.length > 1) {
                             obexClient.removeObject(Utility.nameToBytes(tok[1]));
                         }
                     } else if (tok[0].equals("put")) {
-                        // put <localFilePath> <deviceFilename>
                         if (tok.length > 2) {
                             OBEXFile fileHolder = loadLocalFile(tok[1]);
                             obexClient.removeObject(fileHolder);
                             obexClient.writeFile(fileHolder);
                         }
                     } else if (tok[0].equals("get")) {
-                        // get <deviceFilename> <localFilePath>
                         if (tok.length > 2) {
                             OBEXFile fh = obexClient.readFile(tok[1]);
                             saveLocalFile(fh);
                         }
                     } else if (tok[0].equals("cat")) {
-                        // cat <deviceFilename>
                         if (tok.length > 1) {
                             OBEXFile fh = obexClient.readFile(tok[1]);
                             String catString = new String(fh.getContents());
                             ui.println(catString);
                         }
                     } else if (tok[0].equals("erasedisk")) {
-                        // erasedisk
                         if (tok.length > 1) {
                             if (tok[1].toLowerCase().startsWith("-y")) {
                                 obexClient.eraseDisk();
@@ -285,9 +274,7 @@ public class StandAloneApp {
                                 obexClient.eraseDisk();
                             }
                         }
-
                     } else if (tok[0].equals("sleep")) {
-                        // sleep <milliseconds>
                         if (tok.length > 1) {
                             long millis = Long.parseLong(tok[1]);
                             try {
@@ -300,11 +287,11 @@ public class StandAloneApp {
                     }
                 }
             }
-        } catch (Exception e) {
-            e.printStackTrace();
+        } finally {
+            Log.info("disconnecting obex");
+            obexClient.disconnect();
         }
-        Log.info("disconnecting obex");
-        obexClient.disconnect();
+
     }
 
     private void printHelp(UserInterface ui) {

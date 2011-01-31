@@ -141,7 +141,7 @@ public class ATConnection {
                     throw new IOException("Operation not supported: " + ex.getMessage(), ex);
                 } catch (PortInUseException ex) {
                     terminate();
-                    throw new IOException("The port " + commPortIdentifier.getName() + "is in use.", ex);
+                    throw new IOException("The port " + commPortIdentifier.getName() + " is in use.", ex);
                 }
                 if (newConnMode == MODE_DATA) {
                     connMode = openDataMode() ? MODE_DATA : connMode;
@@ -188,49 +188,34 @@ public class ATConnection {
      */
     public synchronized byte[] send(final byte[] b, final int timeout) throws IOException {
         if (connMode != MODE_AT) {
-            LOGGER.log(Level.WARNING, "Trying to send in wrong mode. Mode is {0}", connMode);
+            LOGGER.log(Level.FINE, "Trying to send in wrong mode. Mode is {0}", connMode);
         }
         return sendPacket(b, timeout);
     }
 
     /**
-     * Method used to auto identify the device, if it is not yet identified.
+     * Method used to auto identify the device
      */
     public void identifyDevice() throws IOException {
-        if (device == null && connMode == MODE_AT) {
-            String s = new String(send("AT+CGMM\r".getBytes(), 500));
-            if (s.indexOf("ERROR") > -1) {
-                LOGGER.log(Level.WARNING, "Warning: Device is in wrong mode.");
+        String s = "";
+        for (int m = 5; m > 0; m--) {
+            s = new String(send("AT+CGMM\r".getBytes(), 500));
+            if (s.indexOf("TC65i") > -1) {
+                LOGGER.log(Level.FINE, "Found TC65i device.");
+                setDevice(OBEXDevice.TC65);
+                return;
             } else if (s.indexOf("TC65") > -1) {
                 LOGGER.log(Level.FINE, "Found TC65 device.");
                 setDevice(OBEXDevice.TC65);
-            } else {
-                LOGGER.log(Level.WARNING, "Unknown device {0}, using default settings", s);
-                setDevice(OBEXDevice.DEFAULT);
+                return;
+            } else if (s.indexOf("AT+CGMM") > -1) {
+                LOGGER.log(Level.WARNING, "Unexpected behavior, trying to fix.", s);
+                send(new byte[]{'A', 'T', 'E', '\r'}, 50);
             }
         }
-
-    }
-
-    /**
-     * Method used to auto identify the device, if it is not yet identified.
-     */
-    @Deprecated
-    public boolean identifyDevice(byte[] b) throws IOException {
-        if (device == null && connMode == MODE_AT) {
-            String s = new String(b);
-            if (s.indexOf("ERROR") > -1) {
-                LOGGER.log(Level.WARNING, "Warning: Device is in wrong mode.");
-            } else if (s.indexOf("TC65") > -1) {
-                LOGGER.log(Level.FINE, "Found TC65 device.");
-                setDevice(OBEXDevice.TC65);
-                return true;
-            } else {
-                LOGGER.log(Level.WARNING, "Unknown device" + s + ", using default settings");
-                setDevice(OBEXDevice.DEFAULT);
-            }
+        if (device == null) {
+            throw new IOException("Device is in wrong mode or device not supported.");
         }
-        return false;
     }
 
     public boolean isAnswering() {
@@ -376,15 +361,21 @@ public class ATConnection {
      */
     public void estabilize() throws IOException {
         LOGGER.log(Level.FINEST, "Estabilizating I/O");
-//        sendPacket(OBEXDevice.CMD_CHECK, 50);
-        if (send(OBEXDevice.CMD_CHECK, 50).length < 1) {
+        is.skip(is.available());
+        if (sendPacket(OBEXDevice.CMD_CHECK, 50).length < 1) {
             closeDataMode();
         }
-        send(OBEXDevice.CMD_CHECK, 50);
-        send(new byte[]{'A', 'T', 'E', '\r'}, 50);
-        send(OBEXDevice.CMD_CHECK, 50);
-        send(OBEXDevice.CMD_CHECK, 50);
-        send(OBEXDevice.CMD_CHECK, 50);
+        checkSend(new byte[]{'A', 'T', 'Z', '\r'}, 50);
+        checkSend(("at+ipr=" + baudRate + "\r").getBytes(), 100);
+        checkSend(new byte[]{'A', 'T', 'E', '\r'}, 50);
+        checkSend(new byte[]{'A', 'T', 'E', '\r'}, 50);
+        checkSend(OBEXDevice.CMD_CHECK, 50);
+    }
+
+    private void checkSend(byte[] b, int timeout) throws IOException {
+        if (new String(sendPacket(b, 50)).contains("ERROR")) {
+            throw new IOException("Device is in wrong mode or is not supported");
+        }
     }
 
     /**
@@ -407,7 +398,6 @@ public class ATConnection {
     }
 
     public void terminate() {
-        System.out.println("Terminating...");
         if (serialPort != null) {
             serialPort.removeEventListener();
         }

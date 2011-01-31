@@ -37,7 +37,7 @@ import java.util.logging.Logger;
  */
 public class OBEXClient {
 
-    public final static String version = "2.1 beta";
+    public final static String version = "2.2 beta";
     private final static int TIMEOUT = 30000;
     private final static Logger logger = Utility.getLogger();
     private final ObexEventListener eventListener = new ObexEventListener();

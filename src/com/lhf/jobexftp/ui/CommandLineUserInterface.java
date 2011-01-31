@@ -38,7 +38,7 @@ public class CommandLineUserInterface implements UserInterface {
         if (commands.isEmpty()) {
             return null;
         }
-        return commands.removeFirst();
+        return commands.poll();
     }
 
     @Override
