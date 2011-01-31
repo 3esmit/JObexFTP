@@ -34,6 +34,8 @@ public abstract class Log {
                     System.out.print(t.getMessage());
                 } else if (t.getLocalizedMessage() != null){
                     System.out.print(t.getLocalizedMessage());
+                }else{
+                    t.printStackTrace();
                 }
             }
         }

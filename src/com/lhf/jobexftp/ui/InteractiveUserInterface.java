@@ -20,11 +20,11 @@ import java.io.IOException;
 
 public class InteractiveUserInterface implements UserInterface {
 
-    private String dir = "a:";
+    private String dir = "a:/";
 
     @Override
     public String readCommand() {
-        System.out.print(dir + "/>");
+        System.out.print(dir + ">");
         String command = Utility.readStandardInput();
         if (command != null && command.trim().equals("exit")) {
             command = null;

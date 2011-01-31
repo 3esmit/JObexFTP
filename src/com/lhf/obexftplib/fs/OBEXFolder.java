@@ -40,6 +40,7 @@ import javax.xml.parsers.SAXParserFactory;
 import org.xml.sax.Attributes;
 import org.xml.sax.InputSource;
 import org.xml.sax.SAXException;
+import org.xml.sax.SAXParseException;
 import org.xml.sax.XMLReader;
 import org.xml.sax.helpers.DefaultHandler;
 
@@ -157,10 +158,8 @@ public final class OBEXFolder extends OBEXObject {
     protected void onReady() {
         try {
             PARSER.parse(getContents(), this);
-        } catch (IOException ex) {
-            Logger.getLogger(OBEXFolder.class.getName()).log(Level.SEVERE, null, ex);
-        } catch (SAXException ex) {
-            Logger.getLogger(OBEXFolder.class.getName()).log(Level.SEVERE, null, ex);
+        } catch (Exception ex) {
+            Logger.getLogger(OBEXFolder.class.getName()).log(Level.SEVERE, "There was an error parsing the folder listing, please try again.");
         }
     }
 

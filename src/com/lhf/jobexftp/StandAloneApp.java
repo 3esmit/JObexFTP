@@ -100,7 +100,7 @@ public class StandAloneApp {
         System.out.println("  -fc --flowcontrol <flowcontrol>");
         System.out.println("        none for no flowcontrol");
         System.out.println("        rtscts for RTS/CTS");
-        System.out.println("        xonxoff for XON/XOFF");
+//        System.out.println("        xonxoff for XON/XOFF"); This is not supported since is character-encoded. Binary dont work.
         System.out.println("        Default is RTS/CTS");
         System.out.println("");
         System.out.println("  -w --wait <seconds>");
@@ -138,7 +138,7 @@ public class StandAloneApp {
     private byte flowControl = ATConnection.FLOW_RTSCTS;
     private String portname = null;
     private int baudrate = 115200;
-    private int timeout = 2000;
+    private int timeout = 1000;
 
     public void exec(String[] args) throws Exception {
         Log.logLevel = Log.LOG_INFO;
@@ -205,6 +205,10 @@ public class StandAloneApp {
         }
     }
 
+    private void updateDir(UserInterface ui, OBEXClient obexClient) {
+        ui.setDir(obexClient.getCurrentFolder().getPath() + "/");
+    }
+
     private void run(ATConnection device, UserInterface ui) throws IOException {
         OBEXClient obexClient = new OBEXClient(device);
         Log.info("connecting obex");
@@ -217,29 +221,46 @@ public class StandAloneApp {
                 String tok[] = Utility.split(cmdline);
                 if (tok[0].startsWith("#") || tok[0].startsWith("//")) {
                     // do nothing, it's a comment
-                } else if (tok[0].startsWith("AT") || cmdline.startsWith("at")) {
-                    if (device.getConnMode() != ATConnection.MODE_AT) {
+                } else if (tok[0].toUpperCase().startsWith("AT")) {
+                    if (device.getConnMode() == ATConnection.MODE_DATA) {
+                        Log.info("disconnecting obex");
                         obexClient.disconnect();
                         device.setConnMode(ATConnection.MODE_AT);
+                        ui.setDir("$");
                     }
                     ui.println(tok[0]);
-                    String response = new String(device.send(tok[0].getBytes(), timeout));
+                    String response = new String(device.send((tok[0] + "\r").getBytes(), timeout));
                     ui.println(response);
+                } else if (tok[0].equals("sleep")) {
+                    if (tok.length > 1) {
+                        long millis = Long.parseLong(tok[1]);
+                        try {
+                            Thread.sleep(millis);
+                        } catch (InterruptedException ex) {
+                        }
+                    }
+                } else if (tok[0].equals("help")) {
+                    printHelp(ui);
+                } else if (tok[0].equals("about")) {
+                    printAbout(ui, device, obexClient);
                 } else {
-                    if (device.getConnMode() != ATConnection.MODE_DATA) {
+                    // Obex commands
+                    if (device.getConnMode() == ATConnection.MODE_AT) {
+                        Log.info("connecting obex");
                         device.setConnMode(ATConnection.MODE_DATA);
                         obexClient.connect();
+                        updateDir(ui, obexClient);
                     }
                     if (tok[0].equals("cd")) {
                         if (tok.length > 1) {
                             obexClient.changeDirectory(tok[1], false);
                         }
-                        ui.setDir(obexClient.getCurrentFolder().getPath());
+                        updateDir(ui, obexClient);
                     } else if (tok[0].equals("mkdir")) {
                         if (tok.length > 1) {
                             obexClient.changeDirectory(tok[1], true);
                         }
-                        ui.setDir(obexClient.getCurrentFolder().getPath());
+                        updateDir(ui, obexClient);
                     } else if (tok[0].equals("ls") || tok[0].equals("dir")) {
                         ui.println(obexClient.loadFolderListing().getListing());
                     } else if (tok[0].equals("rm") || tok[0].equals("del")) {
@@ -247,15 +268,22 @@ public class StandAloneApp {
                             obexClient.removeObject(Utility.nameToBytes(tok[1]));
                         }
                     } else if (tok[0].equals("put")) {
-                        if (tok.length > 2) {
+                        if (tok.length > 1) {
                             OBEXFile fileHolder = loadLocalFile(tok[1]);
+                            if (tok.length > 2) {
+                                fileHolder.setName(Utility.getLastFolder(tok[2]));
+                            }
                             obexClient.removeObject(fileHolder);
                             obexClient.writeFile(fileHolder);
                         }
                     } else if (tok[0].equals("get")) {
-                        if (tok.length > 2) {
+                        if (tok.length > 1) {
                             OBEXFile fh = obexClient.readFile(tok[1]);
-                            saveLocalFile(fh);
+                            File f = null;
+                            if (tok.length > 2) {
+                                f = new File(tok[2]);
+                            }
+                            saveLocalFile(fh, f);
                         }
                     } else if (tok[0].equals("cat")) {
                         if (tok.length > 1) {
@@ -274,23 +302,51 @@ public class StandAloneApp {
                                 obexClient.eraseDisk();
                             }
                         }
-                    } else if (tok[0].equals("sleep")) {
-                        if (tok.length > 1) {
-                            long millis = Long.parseLong(tok[1]);
-                            try {
-                                Thread.sleep(millis);
-                            } catch (InterruptedException ex) {
-                            }
-                        }
-                    } else if (tok[0].equals("help")) {
-                        printHelp(ui);
+                    } else if (!tok[0].trim().equals("")) {
+                        ui.println("command " + tok[0] + " not recognized.");
                     }
                 }
             }
         } finally {
-            Log.info("disconnecting obex");
-            obexClient.disconnect();
+            if (device.getConnMode() == ATConnection.MODE_DATA) {
+                Log.info("disconnecting obex");
+                obexClient.disconnect();
+            }
         }
+
+    }
+
+    private void printAbout(UserInterface ui, ATConnection device, OBEXClient obexClient) {
+        String helper;
+        ui.println("Connected to: " + device.getCommPortIdentifier().getName());
+        ui.println("Device identified: " + device.getDevice().name());
+        switch (device.getFlowControl()) {
+            case ATConnection.FLOW_XONXOFF:
+                helper = "XON/XOFF";
+                break;
+            case ATConnection.FLOW_RTSCTS:
+                helper = "RTS/CTS";
+                break;
+            default:
+                helper = "None";
+                break;
+        }
+        ui.println("FlowControl: " + helper);
+        ui.println("Baudrate: " + device.getBaudRate());
+        switch (device.getConnMode()) {
+
+            case ATConnection.MODE_AT:
+                helper = "ATCommand";
+                break;
+            case ATConnection.MODE_DATA:
+                helper = "Data";
+                break;
+            default:
+                helper = "Disconnected";
+                break;
+        }
+        ui.println("Mode: " + helper);
+        ui.println("Current folder: " + (device.getConnMode() == 1 ? device.getDevice().getRootFolder() : obexClient.getCurrentFolder().getPath()));
 
     }
 
@@ -304,23 +360,22 @@ public class StandAloneApp {
         ui.println("  rm (or del) <deviceFilename>");
         ui.println("  sleep <milliseconds>");
         ui.println("  erasedisk [-y] ");
+        ui.println("  about");
         ui.println("  help");
         ui.println("  exit");
     }
 
     private OBEXFile loadLocalFile(String filepath) throws IOException {
         File f = new File(filepath);
-        FileInputStream in = new FileInputStream(f);
-        byte[] buf = new byte[(int) f.length()];
-        in.read(buf);
-        in.close();
         OBEXFile file = new OBEXFile(f.getName());
-        file.setContents(buf);
+        file.setInputStream(new FileInputStream(f));
         return file;
     }
 
-    private void saveLocalFile(OBEXFile fileHolder) throws IOException {
-        File f = new File(fileHolder.getName());
+    private void saveLocalFile(OBEXFile fileHolder, File f) throws IOException {
+        if (f == null) {
+            f = new File(fileHolder.getName());
+        }
         FileOutputStream out = new FileOutputStream(f);
         out.write(fileHolder.getContents());
         out.close();

@@ -573,6 +573,11 @@ public class ATConnection {
         return incomingData;
     }
 
+    public int getBaudRate() {
+        return baudRate;
+    }
+    
+
     /**
      * Private class to hold the SerialPortEventListener#serialEvent(gnu.io.SerialPortEvent) out visibility of public.
      * @see SerialPortEventListener#serialEvent(gnu.io.SerialPortEvent)

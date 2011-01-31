@@ -34,10 +34,8 @@ import java.util.Arrays;
  */
 public final class OBEXFile extends OBEXObject {
 
-    private byte[] size;
-    private OBEXFolder parentFolder;
+    private byte[] size = null;
     private InputStream inputStream;
-    private String path = null;
 
     public OBEXFile(final OBEXFolder parentFolder, final String filename) {
         super(parentFolder, filename);
@@ -72,16 +70,18 @@ public final class OBEXFile extends OBEXObject {
      * @see JOBEXFile#setContents(java.lang.String) ()
      */
     @Override
-    public void setContents(final byte[] contents) throws IOException {
+    protected void setContents(final byte[] contents) throws IOException {
         setSize(contents.length);
         super.setContents(contents);
     }
-
 
     /**
      * @return the size of the contents of object
      */
     public byte[] getSize() {
+        if (size == null) {
+            setSize(getContents().length);
+        }
         return size;
     }
 
@@ -93,9 +93,10 @@ public final class OBEXFile extends OBEXObject {
     }
 
     /**
-     * Method used to get the inputstream to read the contents of object.  If is null, will create a ByteArrayInputStream with the object contents, setted by setContent(String s);
+     * Method used to get the inputstream to read the contents of object.
+     * Should be used only internally by JObexFTP to read the file to be written
      * @return the inputStream to read the contents of the file.
-     * @see JOBEXObject#setContents(java.lang.String)
+     * @see JOBEXObject#getContents(java.lang.String)
      */
     public InputStream getInputStream() {
         if (inputStream == null) {
@@ -111,7 +112,9 @@ public final class OBEXFile extends OBEXObject {
      */
     public void setInputStream(final InputStream inputStream) {
         try {
-            setSize(inputStream.available());
+            if (inputStream != null) {
+                setSize(inputStream.available());
+            }
         } catch (IOException ex) {
             //TODO: Log errors.
         }

@@ -283,7 +283,7 @@ public class OBEXClient {
         InputStream is = file.getInputStream();
         int toRead;
         do {
-            int size = (maxPacketLenght-40) - req.getPacketLength();
+            int size = (maxPacketLenght - 40) - req.getPacketLength();
             int ava = is.available();
             if (ava < size + 3) {
                 toRead = ava;
@@ -301,6 +301,8 @@ public class OBEXClient {
             req = new PutRequest();
 
         } while ((res.getType() & 0x7F) == Response.CONTINUE);
+        is.close();
+        file.setInputStream(null);
         return (res.getType() & 0x7F) == Response.SUCCESS;
     }
 
@@ -427,6 +429,7 @@ public class OBEXClient {
             }
 
         }
+
         logger.log(Level.FINE, "Now in folder {0}", getCurrentFolder().getPath());
 
         return success;
@@ -436,6 +439,9 @@ public class OBEXClient {
      * @return the currentFolder
      */
     public OBEXFolder getCurrentFolder() {
+        if (currentFolder == null) {
+            currentFolder = OBEXObject.ROOT_FOLDER;
+        }
         return currentFolder;
     }
 
@@ -480,6 +486,10 @@ public class OBEXClient {
      */
     public void setMaxPacketLenght(final int maxPacketLenght) {
         this.maxPacketLenght = maxPacketLenght;
+    }
+
+    public boolean isConnected() {
+        return connected;
     }
 }
 

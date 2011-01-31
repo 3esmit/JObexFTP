@@ -190,7 +190,7 @@ public abstract class OBEXObject {
      * @param contents
      * @throws IOException
      */
-    public void setContents(final byte[] contents) throws IOException {
+    protected void setContents(final byte[] contents) throws IOException {
         if (endOfBody) {
             reset();
         }
