@@ -78,17 +78,11 @@ else
 	echo " Failed to find a device ready for communication. "
 	exit 0
 fi
- 
+timeout 1 cat $ttypath
 echo " Device $device at $ttypath "
 echo " JAD $jadpath " 
 echo " JAR $jarpath "
 echo " Sending files with `jobexftp -v`:"
 echo "`fuser -k $ttypath`"
-bash $currentdir/jobexftp -p $ttypath -c "rm $jadfile;rm $jarfile;put $jarpath;put $jadpath;sleep 500;" 
-echo -e -n "AT^SJRA=A:/$jarfile\r" > $ttypath && tail $ttypath
-#TODO better handle this. For some reason cat pulls out here, so while loop is needed.
-while [ -e $ttypath ]
-do
-	cat $ttypath
-	sleep 1
-done
+bash $currentdir/jobexftp -p $ttypath -c "put $jarpath; put $jadpath; run $jarfile" 
+

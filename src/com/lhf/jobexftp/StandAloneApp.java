@@ -26,6 +26,7 @@ import com.lhf.jobexftp.ui.TelnetUserInterface;
 import com.lhf.jobexftp.ui.UserInterface;
 import com.lhf.obexftplib.etc.Log;
 import com.lhf.obexftplib.etc.Utility;
+import com.lhf.obexftplib.event.ATEventListener;
 import com.lhf.obexftplib.fs.OBEXFile;
 import com.lhf.obexftplib.io.ATConnection;
 import com.lhf.obexftplib.io.OBEXClient;
@@ -86,7 +87,11 @@ public class StandAloneApp {
         System.out.println("  -t --telnet <telnetPort>");
         System.out.println("        Do not enter interactive mode but read commands");
         System.out.println("        from a telnet connection (a TCP/IP socket).");
-
+        System.out.println("");
+        System.out.println("  -r --run [jar/jad path]");
+        System.out.println("        Do not enter interactive mode but run and output");
+        System.out.println("        the program inside module. If no path, just output.");
+        System.out.println("");
         System.out.println("OPTIONS are:");
         System.out.println("");
         System.out.println("  -p --portname <portname>");
@@ -98,10 +103,10 @@ public class StandAloneApp {
         System.out.println("         Sets the baudrate. Default is 115200");
         System.out.println("");
         System.out.println("  -fc --flowcontrol <flowcontrol>");
-        System.out.println("        none for no flowcontrol");
+        System.out.println("        none for NONE flowcontrol");
         System.out.println("        rtscts for RTS/CTS");
 //        System.out.println("        xonxoff for XON/XOFF"); This is not supported since is character-encoded. Binary dont work.
-        System.out.println("        Default is RTS/CTS");
+        System.out.println("        Default is NONE");
         System.out.println("");
         System.out.println("  -w --wait <seconds>");
         System.out.println("        Wait X seconds for timeout in atcommands");
@@ -132,13 +137,13 @@ public class StandAloneApp {
     }
 
     private static void printVersion() {
-        System.out.println();
-        System.out.println(OBEXClient.version);
+        System.out.print(OBEXClient.version);
     }
-    private byte flowControl = ATConnection.FLOW_RTSCTS;
+    private byte flowControl = ATConnection.FLOW_NONE;
     private String portname = null;
     private int baudrate = 115200;
     private int timeout = 1000;
+    private String runMode = null;
 
     public void exec(String[] args) throws Exception {
         Log.logLevel = Log.LOG_INFO;
@@ -181,38 +186,49 @@ public class StandAloneApp {
                 ui = new CommandLineUserInterface(args[i + 1]);
             } else if (args[i].equals("-t") || args[i].equals("--telnet")) {
                 ui = new TelnetUserInterface(Integer.parseInt(args[i + 1]));
+            } else if (args[i].equals("-r") || args[i].equals("--run")) {
+                runMode = "";
+                if (args.length > i + 1 && !args[i + 1].startsWith("-")) {
+                    runMode = args[i + 1];
+                }
             }
         }
         if (portname == null) {
             Log.info("Please specify the port.");
             System.exit(0);
         }
-
+        if (runMode != null) {
+            run(portname, runMode);
+            return;
+        }
         ATConnection device = new ATConnection(portname);
         device.setBaudRate(baudrate);
         device.setFlowControl(flowControl);
         Log.info("connecting to serial " + portname + " " + baudrate);
+
         try {
-            device.setConnMode(ATConnection.MODE_DATA);
+
             if (ui == null) {
                 ui = new InteractiveUserInterface();
                 Log.info("starting interactive mode, type 'exit' to exit, 'help' for help.");
             }
-            run(device, ui);
+            processUserInterface(device, ui);
+
         } finally {
-            Log.info("disconnecting serial port");
-            device.setConnMode(ATConnection.MODE_DISCONNECTED);
+            if (runMode == null) {
+                Log.info("disconnecting serial port");
+                device.setConnMode(ATConnection.MODE_DISCONNECTED);
+            }
         }
+
     }
 
     private void updateDir(UserInterface ui, OBEXClient obexClient) {
         ui.setDir(obexClient.getCurrentFolder().getPath() + "/");
     }
 
-    private void run(ATConnection device, UserInterface ui) throws IOException {
+    private void processUserInterface(ATConnection device, UserInterface ui) throws IOException {
         OBEXClient obexClient = new OBEXClient(device);
-        Log.info("connecting obex");
-        obexClient.connect();
         try {
             String cmdline;
             while ((cmdline = ui.readCommand()) != null) {
@@ -222,15 +238,34 @@ public class StandAloneApp {
                 if (tok[0].startsWith("#") || tok[0].startsWith("//")) {
                     // do nothing, it's a comment
                 } else if (tok[0].toUpperCase().startsWith("AT")) {
-                    if (device.getConnMode() == ATConnection.MODE_DATA) {
+                    if (!obexClient.disconnect()) {
                         Log.info("disconnecting obex");
-                        obexClient.disconnect();
-                        device.setConnMode(ATConnection.MODE_AT);
-                        ui.setDir("$");
                     }
+                    device.setConnMode(ATConnection.MODE_AT);
+                    ui.setDir("$");
                     ui.println(tok[0]);
                     String response = new String(device.send((tok[0] + "\r").getBytes(), timeout));
                     ui.println(response);
+                } else if (tok[0].equals("run")) {
+                    if (!obexClient.disconnect()) {
+                        Log.info("disconnecting obex");
+                    }
+                    ui.setDir("$");
+                    device.setConnMode(ATConnection.MODE_AT);
+                    device.addATEventListener(new ATEventListener() {
+
+                        public void ATEvent(byte[] event) {
+                            System.out.print(new String(event));
+                        }
+                    });
+                    if (tok.length > 1) {
+                        if (!sjra(device, tok[1])) {
+                            ui.println("Could not execute program");
+                            continue;
+                        }
+                    }
+                    runMode = "";
+                    break;
                 } else if (tok[0].equals("sleep")) {
                     if (tok.length > 1) {
                         long millis = Long.parseLong(tok[1]);
@@ -245,12 +280,11 @@ public class StandAloneApp {
                     printAbout(ui, device, obexClient);
                 } else {
                     // Obex commands
-                    if (device.getConnMode() == ATConnection.MODE_AT) {
+                    device.setConnMode(ATConnection.MODE_DATA);
+                    if (obexClient.connect()) {
                         Log.info("connecting obex");
-                        device.setConnMode(ATConnection.MODE_DATA);
-                        obexClient.connect();
-                        updateDir(ui, obexClient);
                     }
+                    updateDir(ui, obexClient);
                     if (tok[0].equals("cd")) {
                         if (tok.length > 1) {
                             obexClient.changeDirectory(tok[1], false);
@@ -308,12 +342,22 @@ public class StandAloneApp {
                 }
             }
         } finally {
-            if (device.getConnMode() == ATConnection.MODE_DATA) {
+            if (!obexClient.disconnect()) {
                 Log.info("disconnecting obex");
-                obexClient.disconnect();
             }
         }
 
+    }
+
+    private boolean sjra(ATConnection device, String absolutePath) throws IOException {
+        if (!(absolutePath.startsWith("a:/"))) {
+            if (absolutePath.startsWith("/")) {
+                absolutePath = "a:" + absolutePath;
+            } else {
+                absolutePath = "a:/" + absolutePath;
+            }
+        }
+        return !(new String(device.send(("AT^SJRA=" + absolutePath + "\r").getBytes(), 500)).contains("ERROR"));
     }
 
     private void printAbout(UserInterface ui, ATConnection device, OBEXClient obexClient) {
@@ -359,6 +403,7 @@ public class StandAloneApp {
         ui.println("  get <deviceFilename> <localFilepath>");
         ui.println("  rm (or del) <deviceFilename>");
         ui.println("  sleep <milliseconds>");
+        ui.println("  run [jar/jad path]");
         ui.println("  erasedisk [-y] ");
         ui.println("  about");
         ui.println("  help");
@@ -379,5 +424,28 @@ public class StandAloneApp {
         FileOutputStream out = new FileOutputStream(f);
         out.write(fileHolder.getContents());
         out.close();
+    }
+
+    private void run(String portname, String absolutePath) throws Exception {
+        ATConnection device = new ATConnection(portname) {
+
+            @Override
+            protected void onOpen() throws IOException {
+                //does notting
+            }
+
+            @Override
+            protected void onClose() throws IOException {
+                //does notting
+            }
+        };
+        device.addATEventListener(new ATEventListener() {
+
+            public void ATEvent(byte[] event) {
+                System.out.print(new String(event));
+            }
+        });
+        device.setConnMode(1);
+        sjra(device, absolutePath);
     }
 }
