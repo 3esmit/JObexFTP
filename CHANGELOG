@@ -1,0 +1,33 @@
+JObexFTP 2.2
+- API improvements and new restrictions (to prevent bad use)
+- Enhanced IDE integration sh
+- run application mode and command added
+- about command added
+- changed default flowcontrol to NONE
+- changed default timeout to 1000ms
+- xonxoff removed from menu (since it is useless), but still accepts option in -fc xonxoff
+- etabilize and indentify of device improved
+- now makefile works on jar (fastjar) 0.98
+- enhanced makefile
+- IDE integration sh
+- Auto exec off script
+- sleep added
+- at command support
+JObexFTP 2.1
+- added makefile
+- TC65SH interactive user interface
+- TC65SH command user interface
+- TC65SH file user interface
+- TC65SH telnet user interface
+JObexFTP 2.0
+- Full refactoring of code
+- 60% faster read/write ATC and OBEX Op.
+- Main API classes documented in java doc
+- Working just with byte arrays
+- OBEXObject, OBEXFolder and OBEXFile now works
+- Human readable folder listing
+- Easy access to obex information
+- Different levels of debug options
+- Tested, stable and working code
+
+(JObexFTP 1.0 changelog not avaliable)
