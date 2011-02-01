@@ -19,6 +19,7 @@
  */
 package com.lhf.obexftplib.io;
 
+import com.dummy.DummyOutputStream;
 import com.lhf.obexftplib.event.DataEventListener;
 import com.lhf.obexftplib.event.ConnectionModeListener;
 import com.lhf.obexftplib.etc.*;
