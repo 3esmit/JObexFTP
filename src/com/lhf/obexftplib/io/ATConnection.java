@@ -30,8 +30,6 @@ import gnu.io.NoSuchPortException;
 import gnu.io.PortInUseException;
 import gnu.io.RXTXPort;
 //import gnu.io.RXTXPort;
-import com.dummy.DummyInputStream;
-import com.dummy.DummyOutputStream;
 import com.dummy.DummyRXTXPort;
 import com.dummy.DummySerialPortEvent;
 import com.dummy.DummySerialPortEventListener;
