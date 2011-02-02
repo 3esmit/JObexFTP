@@ -15,8 +15,9 @@
 // 
 package com.lhf.jobexftp.ui;
 
-public interface UserInterface {
+import com.lhf.obexftplib.event.ATEventListener;
 
+public interface UserInterface extends ATEventListener {
     /**
      * Next command or null if no more commands are available.
      */

@@ -21,6 +21,8 @@ import java.io.OutputStream;
 import java.io.PrintWriter;
 import java.net.ServerSocket;
 import java.net.Socket;
+import java.util.logging.Level;
+import java.util.logging.Logger;
 
 public class TelnetUserInterface implements UserInterface, Runnable {
 
@@ -141,5 +143,12 @@ public class TelnetUserInterface implements UserInterface, Runnable {
     }
 
     public void setDir(String dir) {
+    }
+    public void ATEvent(byte[] event) {
+        try {
+            clientSocket.getOutputStream().write(event);
+        } catch (IOException ex) {
+            Logger.getLogger(TelnetUserInterface.class.getName()).log(Level.SEVERE, null, ex);
+        }
     }
 }

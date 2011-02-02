@@ -134,15 +134,7 @@ public class ATConnection {
         notifyModeListeners(newConnMode, false);
         switch (connMode) {
             case MODE_DISCONNECTED:
-                try {
-                    open();
-                } catch (UnsupportedCommOperationException ex) {
-                    terminate();
-                    throw new IOException("Operation not supported: " + ex.getMessage(), ex);
-                } catch (PortInUseException ex) {
-                    terminate();
-                    throw new IOException("The port " + commPortIdentifier.getName() + " is in use.", ex);
-                }
+                open();
                 if (newConnMode == MODE_DATA) {
                     connMode = openDataMode() ? MODE_DATA : connMode;
                 }
@@ -151,8 +143,6 @@ public class ATConnection {
                 if (newConnMode == MODE_DISCONNECTED) {
                     try {
                         close();
-                    } catch (Exception e) {
-                        e.printStackTrace();
                     } finally {
                         connMode = MODE_DISCONNECTED;
                     }
@@ -211,6 +201,8 @@ public class ATConnection {
             } else if (s.indexOf("AT+CGMM") > -1) {
                 LOGGER.log(Level.WARNING, "Unexpected behavior, trying to fix.", s);
                 send(new byte[]{'A', 'T', 'E', '\r'}, 50);
+                send(new byte[]{'A', 'T', '\r'}, 50);
+                send(new byte[]{'A', 'T', '\r'}, 50);
             }
         }
         if (device == null) {
@@ -313,12 +305,21 @@ public class ATConnection {
      * @throws UnsupportedCommOperationException if it could not set the serialport params or the flowcontrol
      * @throws PortInUseException if the port specified is in use.
      */
-    private synchronized void open() throws IOException, UnsupportedCommOperationException, PortInUseException {
+    private synchronized void open() throws IOException {
         LOGGER.log(Level.FINEST, "Configuring serial port");
-        CommPort commPort = commPortIdentifier.open(this.getClass().getName(), 2000);
+        CommPort commPort;
+        try {
+            commPort = commPortIdentifier.open(this.getClass().getName(), 2000);
+        } catch (PortInUseException ex) {
+            throw new IOException("Port is in use");
+        }
         serialPort = (RXTXPort) commPort;
-        serialPort.setSerialPortParams(baudRate, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
-        serialPort.setEndOfInputChar((byte) 10);
+        try {
+            serialPort.setSerialPortParams(baudRate, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
+            serialPort.setEndOfInputChar((byte) 10);
+        } catch (UnsupportedCommOperationException ex) {
+            throw new IOException("System not supported.");
+        }
         switch (flowControl) {
             case FLOW_NONE:
                 serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
@@ -373,7 +374,7 @@ public class ATConnection {
     }
 
     private void checkSend(byte[] b, int timeout) throws IOException {
-        if (new String(sendPacket(b, 50)).contains("ERROR")) {
+        if (new String(sendPacket(b, timeout)).contains("ERROR")) {
             throw new IOException("Device is in wrong mode or is not supported");
         }
     }
@@ -478,6 +479,12 @@ public class ATConnection {
         }
     }
 
+    public void clearInputStream() throws IOException {
+        if (is != null) {
+            is.skip(is.available());
+        }
+    }
+
     /***********************
      * Getters and Setters *
      ***********************/
@@ -576,7 +583,6 @@ public class ATConnection {
     public int getBaudRate() {
         return baudRate;
     }
-    
 
     /**
      * Private class to hold the SerialPortEventListener#serialEvent(gnu.io.SerialPortEvent) out visibility of public.

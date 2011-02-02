@@ -63,6 +63,10 @@ public final class Utility {
         StringBuilder buf = new StringBuilder();
         while (true) {
             try {
+                Thread.sleep(10);
+            } catch (InterruptedException ex) {
+            }
+            try {
                 int c = System.in.read();
                 if (c != 13) {
                     if (c == 10) {
@@ -78,7 +82,7 @@ public final class Utility {
                 throw new RuntimeException(e);
             }
         }
-        return buf.toString();
+        return buf.toString().trim();
     }
 
     /**

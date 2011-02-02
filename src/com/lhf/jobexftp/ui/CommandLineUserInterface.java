@@ -61,4 +61,7 @@ public class CommandLineUserInterface implements UserInterface {
 
     public void setDir(String dir) {
     }
+    public void ATEvent(byte[] event) {
+        System.out.print(new String(event));
+    }
 }

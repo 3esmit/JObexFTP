@@ -83,4 +83,7 @@ public class CommandFileUserInterface implements UserInterface {
     public void setDir(String dir) {
 //        throw new UnsupportedOperationException("Not supported yet.");
     }
+
+    public void ATEvent(byte[] event) {
+    }
 }

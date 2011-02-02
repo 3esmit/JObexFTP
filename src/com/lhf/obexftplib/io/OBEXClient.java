@@ -78,21 +78,23 @@ public class OBEXClient {
         this.conn.addConnectionModeListener(eventListener);
         this.conn.addDataEventListener(eventListener);
         currentFolder = OBEXObject.ROOT_FOLDER;
-        getCurrentFolder().setName(device.getRootFolder());
-        Request req = new ConnectRequest();
-        Header target = new Header(Header.TARGET);
-        target.setValue(device.getFsUuid());
-        req.addHeader(target);
-        sendPacketAndWait(req, 500);
-        if (hasIncomingPacket) {
-            ConnectResponse response = new ConnectResponse(incomingData.pullData());
-            setMaxPacketLenght(response.getMaxPacketLength());
-            connected = Utility.threatResponse(response);
-            if (connected) {
-                logger.log(Level.FINE, "Connection established");
+        synchronized (this) {
+            getCurrentFolder().setName(device.getRootFolder());
+            Request req = new ConnectRequest();
+            Header target = new Header(Header.TARGET);
+            target.setValue(device.getFsUuid());
+            req.addHeader(target);
+            sendPacketAndWait(req, 500);
+            if (hasIncomingPacket) {
+                ConnectResponse response = new ConnectResponse(incomingData.pullData());
+                setMaxPacketLenght(response.getMaxPacketLength());
+                connected = Utility.threatResponse(response);
+                if (connected) {
+                    logger.log(Level.FINE, "Connection established");
+                }
             }
+            return connected;
         }
-        return connected;
     }
 
     /**
@@ -101,21 +103,24 @@ public class OBEXClient {
      * @throws IOException
      */
     public boolean disconnect() throws IOException {
+
         if (!connected) {
             return !connected;
         }
-        logger.log(Level.FINEST, "Disconnecting");
-        sendPacketAndWait(new DisconnectRequest(), 500);
-        if (hasIncomingPacket) {
-            DisconnectResponse response = new DisconnectResponse(incomingData.pullData());
-            connected = !Utility.threatResponse(response);
-            if (!connected) {
-                logger.log(Level.FINE, "Disconnected");
-                this.conn.removeDataEventListener(eventListener);
-                this.conn.removeConnectionModeListener(eventListener);
+        synchronized (this) {
+            logger.log(Level.FINEST, "Disconnecting");
+            sendPacketAndWait(new DisconnectRequest(), 500);
+            if (hasIncomingPacket) {
+                DisconnectResponse response = new DisconnectResponse(incomingData.pullData());
+                connected = !Utility.threatResponse(response);
+                if (!connected) {
+                    logger.log(Level.FINE, "Disconnected");
+                    this.conn.removeDataEventListener(eventListener);
+                    this.conn.removeConnectionModeListener(eventListener);
+                }
             }
+            return !connected;
         }
-        return !connected;
     }
 
     /**
@@ -139,13 +144,15 @@ public class OBEXClient {
      * @return true if operation was successful.
      */
     public boolean eraseDisk() throws IOException {
-        logger.log(Level.FINEST, "Erasing disk.");
-        PutRequest req = new PutRequest();
-        req.setFinal();
-        Header app = new Header(Header.APP_PARAMETERS);
-        app.setValue(new byte[]{(byte) 0x31, (byte) 0x00});
-        req.addHeader(app);
-        return Utility.threatResponse(put(req));
+        synchronized (this) {
+            logger.log(Level.FINEST, "Erasing disk.");
+            PutRequest req = new PutRequest();
+            req.setFinal();
+            Header app = new Header(Header.APP_PARAMETERS);
+            app.setValue(new byte[]{(byte) 0x31, (byte) 0x00});
+            req.addHeader(app);
+            return Utility.threatResponse(put(req));
+        }
     }
 
     /**
@@ -164,17 +171,19 @@ public class OBEXClient {
      * @return true if successful operation.
      */
     public boolean removeObject(final byte[] filename) throws IOException {
-        logger.log(Level.FINEST, "Removing object {0}", new String(filename));
+        synchronized (this) {
+            logger.log(Level.FINEST, "Removing object {0}", new String(filename));
 
-        PutRequest req = new PutRequest();
-        req.setFinal();
+            PutRequest req = new PutRequest();
+            req.setFinal();
 
-        Header name = new Header(Header.NAME);
-        name.setValue(filename);
-        req.addHeader(name);
+            Header name = new Header(Header.NAME);
+            name.setValue(filename);
+            req.addHeader(name);
 
-        Response res = put(req);
-        return Utility.threatResponse(res);
+            Response res = put(req);
+            return Utility.threatResponse(res);
+        }
     }
 
     /**
@@ -245,13 +254,15 @@ public class OBEXClient {
      * @throws IOException if an IO error occurs
      */
     public OBEXFile readFile(final OBEXFile file) throws IOException {
-        GetRequest request = new GetRequest();
-        request.setFinal();
-        Header name = new Header(Header.NAME);
-        name.setValue(file.getBinaryName());
-        request.addHeader(name);
-        file.addResponses(getAll(request));
-        return file;
+        synchronized (this) {
+            GetRequest request = new GetRequest();
+            request.setFinal();
+            Header name = new Header(Header.NAME);
+            name.setValue(file.getBinaryName());
+            request.addHeader(name);
+            file.addResponses(getAll(request));
+            return file;
+        }
     }
 
     /**
@@ -260,13 +271,15 @@ public class OBEXClient {
      * @throws IOException if an IO error occurs
      */
     public OBEXFolder loadFolderListing() throws IOException {
-        GetRequest request = new GetRequest();
-        request.setFinal();
-        Header type = new Header(Header.TYPE);
-        type.setValue(device.getLsName());
-        request.addHeader(type);
-        getCurrentFolder().addResponses(getAll(request));
-        return getCurrentFolder();
+        synchronized (this) {
+            GetRequest request = new GetRequest();
+            request.setFinal();
+            Header type = new Header(Header.TYPE);
+            type.setValue(device.getLsName());
+            request.addHeader(type);
+            getCurrentFolder().addResponses(getAll(request));
+            return getCurrentFolder();
+        }
     }
 
     /**
@@ -277,33 +290,35 @@ public class OBEXClient {
      * @return true if operation was successful.
      */
     public boolean writeFile(final OBEXFile file) throws IOException {
-        PutRequest req = new PutRequest(file.getHeaderSet());
-        PutResponse res = new PutResponse(Response.BADREQUEST);
-        Header body;
-        InputStream is = file.getInputStream();
-        int toRead;
-        do {
-            int size = (maxPacketLenght - 40) - req.getPacketLength();
-            int ava = is.available();
-            if (ava < size + 3) {
-                toRead = ava;
-                body = new Header(Header.END_OF_BODY);
-                req.setFinal();
-            } else {
-                toRead = size - 3;
-                body = new Header(Header.BODY);
-            }
-            byte[] b = new byte[toRead];
-            is.read(b);
-            body.setValue(b);
-            req.addHeader(body);
-            res = put(req);
-            req = new PutRequest();
+        synchronized (this) {
+            PutRequest req = new PutRequest(file.getHeaderSet());
+            PutResponse res = new PutResponse(Response.BADREQUEST);
+            Header body;
+            InputStream is = file.getInputStream();
+            int toRead;
+            do {
+                int size = (maxPacketLenght - 40) - req.getPacketLength();
+                int ava = is.available();
+                if (ava < size + 3) {
+                    toRead = ava;
+                    body = new Header(Header.END_OF_BODY);
+                    req.setFinal();
+                } else {
+                    toRead = size - 3;
+                    body = new Header(Header.BODY);
+                }
+                byte[] b = new byte[toRead];
+                is.read(b);
+                body.setValue(b);
+                req.addHeader(body);
+                res = put(req);
+                req = new PutRequest();
 
-        } while ((res.getType() & 0x7F) == Response.CONTINUE);
-        is.close();
-        file.setInputStream(null);
-        return (res.getType() & 0x7F) == Response.SUCCESS;
+            } while ((res.getType() & 0x7F) == Response.CONTINUE);
+            is.close();
+            file.setInputStream(null);
+            return (res.getType() & 0x7F) == Response.SUCCESS;
+        }
     }
 
     /**
@@ -328,29 +343,31 @@ public class OBEXClient {
      * @throws IOException
      */
     private boolean setPath(final String folder, final boolean create) throws IOException {
-        boolean success = false;
-        SetPathRequest req = new SetPathRequest();
-        if (folder != null) {
-            if (folder.isEmpty()) {
-                return true;
+        synchronized (this) {
+            boolean success = false;
+            SetPathRequest req = new SetPathRequest();
+            if (folder != null) {
+                if (folder.isEmpty()) {
+                    return true;
+                }
+                logger.log(Level.FINER, "Setting path to {0}", folder);
+                Header name = new Header(Header.NAME);
+                name.setValue(Utility.nameToBytes(folder));
+                req.addHeader(name);
+                req.setFlags(create ? 0x00 : (byte) 0x02);
+            } else {
+                logger.log(Level.FINER, "Setting path to parent folder.");
+                req.setFlags((byte) 0x03);
             }
-            logger.log(Level.FINER, "Setting path to {0}", folder);
-            Header name = new Header(Header.NAME);
-            name.setValue(Utility.nameToBytes(folder));
-            req.addHeader(name);
-            req.setFlags(create ? 0x00 : (byte) 0x02);
-        } else {
-            logger.log(Level.FINER, "Setting path to parent folder.");
-            req.setFlags((byte) 0x03);
-        }
-        sendPacketAndWait(req, 500);
-        if (hasIncomingPacket) {
-            if (incomingData.pullData()[0] == (byte) 0xA0) {
-                logger.log(Level.FINEST, "Path setted.");
-                success = true;
+            sendPacketAndWait(req, 500);
+            if (hasIncomingPacket) {
+                if (incomingData.pullData()[0] == (byte) 0xA0) {
+                    logger.log(Level.FINEST, "Path setted.");
+                    success = true;
+                }
             }
+            return success;
         }
-        return success;
     }
 
     private GetResponse get(final GetRequest request) throws IOException {
@@ -416,14 +433,14 @@ public class OBEXClient {
      * @return true if operation was successful
      */
     private boolean setFolder(String folderName, final boolean create) throws IOException {
-        if (folderName.equals("..")) {
+        if ("..".equals(folderName)) {
             folderName = null;
         }
         boolean success = setPath(folderName, create);
         if (success) {
             if (folderName == null) {
                 currentFolder = getCurrentFolder().getParentFolder();
-            } else if (!folderName.equals("")) {
+            } else if (!"".equals(folderName)) {
                 OBEXFolder childFolder = getCurrentFolder().getChildFolder(folderName);
                 currentFolder = childFolder == null ? new OBEXFolder(getCurrentFolder(), folderName) : childFolder;
             }

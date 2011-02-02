@@ -149,21 +149,21 @@ public class StandAloneApp {
         Log.logLevel = Log.LOG_INFO;
         UserInterface ui = null;
         for (int i = 0; i < args.length; i++) {
-            if (args[i].equals("-p") || args[i].equals("--portname")) {
+            if ("-p".equals(args[i]) || "--portname".equals(args[i])) {
                 portname = args[i + 1];
-            } else if (args[i].equals("-b") || args[i].equals("--baudrate")) {
+            } else if ("-b".equals(args[i]) || "--baudrate".equals(args[i])) {
                 try {
                     baudrate = Integer.parseInt(args[i + 1]);
                 } catch (NumberFormatException ex) {
                     Utility.getLogger().severe("Could not convert baudrate value. Please insert only numbers");
                 }
-            } else if (args[i].equals("-w") || args[i].equals("--wait")) {
+            } else if ("-w".equals(args[i]) || "--wait".equals(args[i])) {
                 try {
                     timeout = Integer.parseInt(args[i + 1]);
                 } catch (NumberFormatException ex) {
                     Utility.getLogger().severe("Could not convert timeout value. Please insert only numbers");
                 }
-            } else if (args[i].equals("-fc") || args[i].equals("--flowcontrol")) {
+            } else if ("-fc".equals(args[i]) || "--flowcontrol".equals(args[i])) {
                 String w = args[i + 1].toLowerCase();
                 if (w.startsWith("none")) {
                     flowControl = ATConnection.FLOW_NONE;
@@ -172,21 +172,21 @@ public class StandAloneApp {
                 } else if (!w.startsWith("rts")) {
                     Utility.getLogger().severe("Invalid flow control.");
                 }
-            } else if (args[i].equals("-d") || args[i].equals("--debug")) {
+            } else if ("-d".equals(args[i]) || "--debug".equals(args[i])) {
                 Log.logLevel = Log.LOG_DEBUG;
                 Utility.getLogger().setLevel(Level.FINEST);
-            } else if (args[i].equals("-q") || args[i].equals("--quiet")) {
+            } else if ("-q".equals(args[i]) || "--quiet".equals(args[i])) {
                 Log.logLevel = Log.LOG_NONE;
                 Utility.getLogger().setLevel(Level.SEVERE);
-            } else if (args[i].equals("-f") || args[i].equals("--file")) {
+            } else if ("-f".equals(args[i]) || "--file".equals(args[i])) {
                 Log.info("processing command file " + args[i + 1]);
                 ui = new CommandFileUserInterface(new File(args[i + 1]));
-            } else if (args[i].equals("-c") || args[i].equals("--commands")) {
+            } else if ("-c".equals(args[i]) || "--commands".equals(args[i])) {
                 Log.info("processing commands " + args[i + 1]);
                 ui = new CommandLineUserInterface(args[i + 1]);
-            } else if (args[i].equals("-t") || args[i].equals("--telnet")) {
+            } else if ("-t".equals(args[i]) || "--telnet".equals(args[i])) {
                 ui = new TelnetUserInterface(Integer.parseInt(args[i + 1]));
-            } else if (args[i].equals("-r") || args[i].equals("--run")) {
+            } else if ("-r".equals(args[i]) || "--run".equals(args[i])) {
                 runMode = "";
                 if (args.length > i + 1 && !args[i + 1].startsWith("-")) {
                     runMode = args[i + 1];
@@ -235,25 +235,26 @@ public class StandAloneApp {
                 cmdline = cmdline.trim();
                 Log.debug(getClass(), "executing command '" + cmdline + "'");
                 String tok[] = Utility.split(cmdline);
+                device.removeATEventListener(ui);
                 if (tok[0].startsWith("#") || tok[0].startsWith("//")) {
                     // do nothing, it's a comment
                 } else if (tok[0].toUpperCase().startsWith("AT")) {
-                    if (!obexClient.disconnect()) {
-                        Log.info("disconnecting obex");
-                    }
+                    device.addATEventListener(ui);
+                    obexClient.disconnect();
                     device.setConnMode(ATConnection.MODE_AT);
                     ui.setDir("$");
-                    ui.println(tok[0]);
-                    String response = new String(device.send((tok[0] + "\r").getBytes(), timeout));
-                    ui.println(response);
-                } else if (tok[0].equals("run")) {
-                    if (!obexClient.disconnect()) {
-                        Log.info("disconnecting obex");
+                    int to;
+                    try {
+                        to = Integer.parseInt(tok[1]);
+                    } catch (Throwable t) {
+                        to = timeout;
                     }
+                    device.send((tok[0] + "\r").getBytes(), to);
+                } else if (tok[0].equals("run")) {
+                    obexClient.disconnect();
                     ui.setDir("$");
                     device.setConnMode(ATConnection.MODE_AT);
                     device.addATEventListener(new ATEventListener() {
-
                         public void ATEvent(byte[] event) {
                             System.out.print(new String(event));
                         }
@@ -279,11 +280,8 @@ public class StandAloneApp {
                 } else if (tok[0].equals("about")) {
                     printAbout(ui, device, obexClient);
                 } else {
-                    // Obex commands
                     device.setConnMode(ATConnection.MODE_DATA);
-                    if (obexClient.connect()) {
-                        Log.info("connecting obex");
-                    }
+                    obexClient.connect();
                     updateDir(ui, obexClient);
                     if (tok[0].equals("cd")) {
                         if (tok.length > 1) {
