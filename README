@@ -1,4 +1,14 @@
+<<<<<<< .merge_file_7uP3Fs
+<<<<<<< .merge_file_JC1RXh
 This is README file for JOBEXFTP 2.2
+=======
+=======
+>>>>>>> .merge_file_jBYjrs
+**WARNING** - this is the 'nasty serial hack' version.  Use the official version at https://github.com/3esmit/JObexFTP unless you have awful RXTX problems.
+
+
+This is README file for JOBEXFTP 2.0
+>>>>>>> .merge_file_BI7LAi
 JOBEXFTP dev homepage: http://www.github.com/3esmit/jobexftp
 
 1. About Project
