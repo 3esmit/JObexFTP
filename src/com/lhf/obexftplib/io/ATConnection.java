@@ -29,7 +29,7 @@ import gnu.io.CommPortIdentifier;
 import gnu.io.NoSuchPortException;
 import gnu.io.PortInUseException;
 import gnu.io.RXTXPort;
-//import gnu.io.RXTXPort;
+
 import com.dummy.DummyRXTXPort;
 import com.dummy.DummySerialPortEvent;
 import com.dummy.DummySerialPortEventListener;
@@ -312,27 +312,19 @@ public class ATConnection {
      */
     private synchronized void open() throws IOException {
         LOGGER.log(Level.FINEST, "Configuring serial port");
-<<<<<<< HEAD
-        CommPort commPort;
         try {
-            commPort = commPortIdentifier.open(this.getClass().getName(), 2000);
-        } catch (PortInUseException ex) {
+            serialPort = new DummyRXTXPort(commPortIdentifier.getName());
+        } catch (Exception ex) {
             throw new IOException("Port is in use");
         }
-        serialPort = (RXTXPort) commPort;
+        
         try {
             serialPort.setSerialPortParams(baudRate, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
             serialPort.setEndOfInputChar((byte) 10);
-        } catch (UnsupportedCommOperationException ex) {
+        } catch (Exception ex) {
             throw new IOException("System not supported.");
         }
-=======
-        //CommPort commPort = commPortIdentifier.open(this.getClass().getName(), 2000);
-        //serialPort = (RXTXPort) commPort;
-        serialPort = new DummyRXTXPort(commPortIdentifier.getName());
-        serialPort.setSerialPortParams(baudRate, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
-        serialPort.setEndOfInputChar((byte) 10);
->>>>>>> chrisdew/master
+
         switch (flowControl) {
             case FLOW_NONE:
                 serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
