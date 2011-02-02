@@ -1,4 +1,7 @@
-This is README file for JOBEXFTP 2.2
+**WARNING** - this is the 'nasty serial hack' version.  Use the official version at https://github.com/3esmit/JObexFTP unless you have awful RXTX problems.
+
+
+This is README file for JOBEXFTP 2.0
 JOBEXFTP dev homepage: http://www.github.com/3esmit/jobexftp
 
 1. About Project

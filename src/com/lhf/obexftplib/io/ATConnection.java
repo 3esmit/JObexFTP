@@ -29,6 +29,11 @@ import gnu.io.CommPortIdentifier;
 import gnu.io.NoSuchPortException;
 import gnu.io.PortInUseException;
 import gnu.io.RXTXPort;
+//import gnu.io.RXTXPort;
+import com.dummy.DummyRXTXPort;
+import com.dummy.DummySerialPortEvent;
+import com.dummy.DummySerialPortEventListener;
+
 import gnu.io.SerialPort;
 import gnu.io.SerialPortEvent;
 import gnu.io.SerialPortEventListener;
@@ -79,7 +84,7 @@ public class ATConnection {
      */
     public static final int MODE_DATA = 2;
     private static final Logger LOGGER = Utility.getLogger();
-    private final SerialPortEventListener eventListener = new ATSerialPortEventListener();
+    private final DummySerialPortEventListener eventListener = new ATSerialPortEventListener();
     private final ArrayList<ConnectionModeListener> connModeListners = new ArrayList<ConnectionModeListener>(10);
     private final ArrayList<DataEventListener> dataEventListners = new ArrayList<DataEventListener>(10);
     private final ArrayList<ATEventListener> atEventListners = new ArrayList<ATEventListener>(10);
@@ -92,7 +97,7 @@ public class ATConnection {
     private CommPortIdentifier commPortIdentifier;
     private InputStream is;
     private OutputStream os;
-    private RXTXPort serialPort;
+    private DummyRXTXPort serialPort;
     private OBEXDevice device;
     private int errors = 0;
 
@@ -307,6 +312,7 @@ public class ATConnection {
      */
     private synchronized void open() throws IOException {
         LOGGER.log(Level.FINEST, "Configuring serial port");
+<<<<<<< HEAD
         CommPort commPort;
         try {
             commPort = commPortIdentifier.open(this.getClass().getName(), 2000);
@@ -320,6 +326,13 @@ public class ATConnection {
         } catch (UnsupportedCommOperationException ex) {
             throw new IOException("System not supported.");
         }
+=======
+        //CommPort commPort = commPortIdentifier.open(this.getClass().getName(), 2000);
+        //serialPort = (RXTXPort) commPort;
+        serialPort = new DummyRXTXPort(commPortIdentifier.getName());
+        serialPort.setSerialPortParams(baudRate, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
+        serialPort.setEndOfInputChar((byte) 10);
+>>>>>>> chrisdew/master
         switch (flowControl) {
             case FLOW_NONE:
                 serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
@@ -588,13 +601,13 @@ public class ATConnection {
      * Private class to hold the SerialPortEventListener#serialEvent(gnu.io.SerialPortEvent) out visibility of public.
      * @see SerialPortEventListener#serialEvent(gnu.io.SerialPortEvent)
      */
-    private final class ATSerialPortEventListener implements SerialPortEventListener {
+    private final class ATSerialPortEventListener implements DummySerialPortEventListener {
 
         /**
          * Method used to recieve SerialPortEvents.
          * @param spe
          */
-        public void serialEvent(final SerialPortEvent spe) {
+        public void serialEvent(final DummySerialPortEvent spe) {
             synchronized (holder) {
                 switch (spe.getEventType()) {
                     case SerialPortEvent.DATA_AVAILABLE:
