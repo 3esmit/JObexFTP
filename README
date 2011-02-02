@@ -1,14 +1,12 @@
-<<<<<<< .merge_file_7uP3Fs
-<<<<<<< .merge_file_JC1RXh
-This is README file for JOBEXFTP 2.2
-=======
-=======
->>>>>>> .merge_file_jBYjrs
 **WARNING** - this is the 'nasty serial hack' version.  Use the official version at https://github.com/3esmit/JObexFTP unless you have awful RXTX problems.
 
 
 This is README file for JOBEXFTP 2.0
+>>>>>>>>>>>>>>>>>>>> File 1
 >>>>>>> .merge_file_BI7LAi
+>>>>>>>>>>>>>>>>>>>> File 2
+>>>>>>>>>>>>>>>>>>>> File 3
+<<<<<<<<<<<<<<<<<<<<
 JOBEXFTP dev homepage: http://www.github.com/3esmit/jobexftp
 
 1. About Project
@@ -37,6 +35,12 @@ Linux users can use Makefile to install RxTx to JObexFTP use only or use shellsc
 - Setting user/group permissions
 - Setting files and folder attributes
 - Getting device memory flash properties
+>>>>>>>>>>>>>>>>>>>> File 1
+>>>>>>>>>>>>>>>>>>>> File 2
+- Interactive mode
+>>>>>>>>>>>>>>>>>>>> File 3
+- Interactive mode
+<<<<<<<<<<<<<<<<<<<<
 - TCP connection mode
 - Internationalization
 - .deb and .rpm packages
