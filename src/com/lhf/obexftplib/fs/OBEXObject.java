@@ -173,7 +173,7 @@ public abstract class OBEXObject {
      * @return the contents
      */
     public byte[] getContents() {
-        return contents.toString().getBytes();
+        return contents.toByteArray();
     }
 
     /**
