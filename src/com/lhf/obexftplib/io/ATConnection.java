@@ -329,6 +329,8 @@ public class ATConnection {
         is = serialPort.getInputStream();
         os = serialPort.getOutputStream();
         serialPort.enableReceiveTimeout(1000); // Really necessary for estabilization
+        serialPort.setOutputBufferSize(512);
+        serialPort.setInputBufferSize(512);
         serialPort.notifyOnDataAvailable(true);
         try {
             serialPort.addEventListener(eventListener);
@@ -417,19 +419,18 @@ public class ATConnection {
     }
 
     /**
-     * Trys at least 2 times closing the datamode by sending +++ bytes to serialport.
+     * Sends +++ to OutputStream, followed and preceded by a pause of 1000 ms.
+     * Then checks if the response contains OK to certify the new mode has been established.
      * @throws IOException if an IO error occurs.
      */
     private void closeDataMode() throws IOException {
         LOGGER.log(Level.FINEST, "Closing datamode.");
-        byte[] r = null;
-        for (int i = 0; i < 2; i++) {
-            r = sendPacket(new byte[]{'+', '+', '+'}, 1000); /* For some damn reason needs 1000 ms of timeout*/
-            if (r.length > 1) {
-                break;
-            }
+        try {
+            Thread.sleep(1000);
+            byte[] r = sendPacket(new byte[]{'+', '+', '+'}, 1000);
+            connMode = (Utility.arrayContainsOK(r) ? MODE_AT : MODE_DATA);
+        } catch (InterruptedException ex) {
         }
-        connMode = (Utility.arrayContainsOK(r) ? MODE_AT : MODE_DATA);
     }
 
     /**
