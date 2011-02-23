@@ -37,7 +37,7 @@ import java.util.logging.Logger;
  */
 public class OBEXClient {
 
-    public final static String version = "2.3 beta";
+    public final static String version = "2.4 beta";
     private final static int TIMEOUT = 30000;
     private final static Logger logger = Utility.getLogger();
     private final ObexEventListener eventListener = new ObexEventListener();
@@ -156,6 +156,40 @@ public class OBEXClient {
     }
 
     /**
+     * Reads the total disk space from obex server
+     * @return the free space in bytes
+     * @throws IOException
+     */
+    public long getDiskSpace() throws IOException {
+        synchronized (this) {
+            PutRequest req = new PutRequest();
+            req.setFinal();
+            Header app = new Header(Header.APP_PARAMETERS);
+            app.setValue(new byte[]{0x32, 0x01, 0x01});
+            req.addHeader(app);
+            PutResponse res = put(req);
+            return Utility.bytesToLong(res.getHeaderValue(Header.APP_PARAMETERS));
+        }
+    }
+
+    /**
+     * Reads the free space from obex server
+     * @return the free space in bytes
+     * @throws IOException
+     */
+    public long getFreeSpace() throws IOException {
+        synchronized (this) {
+            PutRequest req = new PutRequest();
+            req.setFinal();
+            Header app = new Header(Header.APP_PARAMETERS);
+            app.setValue(new byte[]{0x32, 0x01, 0x02});
+            req.addHeader(app);
+            PutResponse res = put(req);
+            return Utility.bytesToLong(res.getHeaderValue(Header.APP_PARAMETERS));
+        }
+    }
+
+    /**
      * Removes a file with the name as setted in OBEXFile, in the current directory.
      * This method is equivalent to removeFile(OBEXFile.getBinaryName());
      * @param file The object containing the name.
@@ -184,6 +218,42 @@ public class OBEXClient {
             Response res = put(req);
             return Utility.threatResponse(res);
         }
+    }
+
+    public boolean setObjectPerm(OBEXObject object, String userPerm, String groupPerm) throws IOException {
+        synchronized (this) {
+
+            PutRequest req = new PutRequest();
+            req.setFinal();
+
+            Header name = new Header(Header.NAME);
+            name.setValue(object.getBinaryName());
+            req.addHeader(name);
+
+            Header app = new Header(Header.APP_PARAMETERS);
+            app.setValue(Utility.buildPerm(userPerm, groupPerm));
+            req.addHeader(app);
+
+            Response res = put(req);
+            return Utility.threatResponse(res);
+        }
+    }
+
+    public boolean moveObject(OBEXObject object, String newPath) throws IOException {
+        return moveObject(object.getPath(), newPath);
+    }
+
+    public boolean moveObject(String oldPath, String newPath) throws IOException {
+        synchronized (this) {
+            PutRequest req = new PutRequest();
+            req.setFinal();
+            Header app = new Header(Header.APP_PARAMETERS);
+            app.setValue(Utility.prepareMoveByteArray(oldPath, newPath));
+            req.addHeader(app);
+            Response res = put(req);
+            return Utility.threatResponse(res);
+        }
+
     }
 
     /**
@@ -222,10 +292,10 @@ public class OBEXClient {
     public boolean changeDirectory(String path, final boolean create) throws IOException {
         boolean success = true;
         path = Utility.preparePath(path); //prepare path to help users who havent read the docs.
-        if (path.startsWith("a:")) { //if changeDir path is absolute
+        if (path.startsWith("/")) { //if changeDir path is absolute
             path = Utility.getRelativePath(path, getCurrentFolder().getPath()); // now is relative (:
         }
-        String currentpath = getCurrentFolder().getPath();
+        String currentpath = Utility.preparePath(getCurrentFolder().getPath());
         if (currentpath.equalsIgnoreCase(path)) {
             return true;
         }

@@ -209,6 +209,20 @@ public final class Utility {
         return result;
     }
 
+    public static long bytesToLong(final byte[] bytes) {
+        long result = 0;
+
+        for (int i = 0; i < bytes.length; i++) {
+            int temp = (int) bytes[i];
+            if (temp < 0) {
+                temp = 0x100 + temp;
+            }
+            result += temp << (8 * (bytes.length - 1 - i));
+        }
+
+        return result;
+    }
+
     /**
      * get sub byte array from the given byte array
      *
@@ -313,7 +327,7 @@ public final class Utility {
     public static String dumpBytes(final byte[] bytes) {
         String result = "";
         for (int i = 0; i < bytes.length; i++) {
-            result += byteToHexString(bytes[i]);
+            result += byteToHexString(bytes[i]).replace("0x", "");
             if (i == bytes.length - 1) {
                 break;
             }
@@ -409,19 +423,31 @@ public final class Utility {
         return String.format("%.1f %sB", bytes / Math.pow(unit, exp), pre);
     }
 
+    public static byte[] prepareMoveByteArray(String oldPath, String newPath) throws IOException {
+        byte[] newPathB = Utility.nameToBytes(newPath), oldPathB = Utility.nameToBytes(oldPath);
+        ByteArrayOutputStream baos = new ByteArrayOutputStream(oldPathB.length + newPathB.length + 10);
+        baos.write(new byte[]{0x34, 0x04, 0x6D, 0x6F, 0x76, 0x65});
+        baos.write(0x35);
+        baos.write(oldPathB.length);
+        baos.write(oldPathB);
+        baos.write(0x36);
+        baos.write(newPathB.length);
+        baos.write(newPathB);
+        byte[] b = baos.toByteArray();
+        baos.close();
+        return b;
+    }
+
     /**
-     * Replaces all slashes '\' for backslashes '/', removes the last backslash and adds the drive letter 'a:' if starts with and blackslash
+     * Replaces all slashes '\' for backslashes '/', removes the last backslash and remove the drive letter 'a:'
      * @param path the path to be prepared
      * @return the prepared path
      * @see Utility#removeLastSlash(java.lang.String)
      */
     public static String preparePath(String path) {
         path = path.replace('\\', '/'); //
-        if (path.startsWith("/")) {
-            path = path.replaceFirst("/", "a:/");
-        }
-        if (path.endsWith("/")) {
-            path = path.substring(0, path.length() - 1);
+        if (path.startsWith("a:/")) {
+            path = path.replaceFirst("a:", "");
         }
         return removeLastSlash(path);
     }
@@ -601,23 +627,39 @@ public final class Utility {
 
     /**
      * Creates byte array to set user, group and others permissions.
-     * @param value the string containing the permited operations.
+     * @param userPerm the string containing the permited operations.
      * @param type the type to user, group or others.
      * @return the array
      */
-    public static byte[] buildPerm(final String value, final byte b) {
+    public static byte[] buildPerm(final String userPerm, final String groupPerm) {
         byte[] prem;
-        int i = 4 + value.length();
+        int i = 6 + userPerm.length() + groupPerm.length();
         int j = i;
         prem = new byte[i];
         prem[--i] = '\"';
-        for (int k = value.length() - 1; k > -1; k--) {
-            prem[--i] = (byte) value.charAt(k);
+        for (int k = groupPerm.length() - 1; k > -1; k--) {
+            prem[--i] = (byte) groupPerm.charAt(k);
+        }
+        prem[--i] = '\"';
+        prem[--i] = '\"';
+        for (int k = userPerm.length() - 1; k > -1; k--) {
+            prem[--i] = (byte) userPerm.charAt(k);
         }
         prem[--i] = '\"';
         prem[--i] = (byte) (j - 2);
-        prem[--i] = b;
+        prem[--i] = 0x38;
         return prem;
+    }
+
+    public static String bytesToPerm(byte[] perm) {
+        StringBuilder s = new StringBuilder();
+        for (int i = 3; i < perm.length; i++) {
+            byte b = perm[i];
+            if (b != '\"') {
+                s.append((char) b);
+            }
+        }
+        return s.toString();
     }
     private static final DateFormat format = SimpleDateFormat.getInstance();
 
@@ -632,6 +674,22 @@ public final class Utility {
         if (date != null) {
             builder.append(Utility.dateFormat(date));
         }
+        builder.append('\n');
+
+        return builder;
+    }
+
+    public static StringBuilder listingFormat(StringBuilder builder, String filename, String size, Date date, String perm1, String perm2) {
+        int l = builder.length();
+        builder.append(filename).append("                    ").setLength(l = l + 20);
+        builder.append(size).append("           ").setLength(l = l + 10);
+        builder.append(perm1).append("    ").setLength(l = l + 4);
+        builder.append(perm2).append("    ").setLength(l = l + 4);
+        if (date != null) {
+            builder.append(Utility.dateFormat(date));
+        }
+//        builder.append("               ").setLength(l = l + 15);
+
         builder.append('\n');
 
         return builder;

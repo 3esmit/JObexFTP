@@ -1,8 +1,8 @@
-This is README file for JOBEXFTP 2.3
+This is README file for JOBEXFTP 2.4
 
 1. About Project
 What is JObexFTP?
-JObexFTP is a Java implementation of Obex Client protocol under Siemiens/Cinterion AT specification aimed to work with TC65 and TC65i modules, but can perfecly work in any OBEX device with minimal adaptation.
+JObexFTP is a Java implementation of Obex Client protocol under Siemiens/Cinterion AT specification aimed to work with TC65 and TC65i modules, but can perfecly work in any OBEX device with simple adaptation.
 It is developed as an opensource substitute of Cinterion Module Exchange Suite (MES) and also as a library to give Java applications MES capabilities. 
 The project is mainly developed by Linux users but it works in Windows too, as 98% of the project is cross-plataform.
 
@@ -13,6 +13,8 @@ Linux users can use Makefile to install RxTx to JObexFTP use only or use shellsc
 
 3. Features
 - IDE Integration
+- All Official MES funcionality.
+- Make install script
 - Intuitive API calls 
 - Support (IrDA) Object Exchange Protocol
 - Easy implementations of new devices 
@@ -23,11 +25,6 @@ Linux users can use Makefile to install RxTx to JObexFTP use only or use shellsc
 - Aborting put operations leaves the file half there.
 
 4. Not implemented yet
-- Setting user/group permissions
-- Setting files and folder attributes
-- Getting device memory flash properties
-- Interactive mode
-- TCP connection mode
 - Internationalization
 - .deb and .rpm packages
 
@@ -42,13 +39,13 @@ Please report if you are using JOBEXFTP and give me feedback of your problems an
 
 7. Authoring
 This project is managed and mainly developed by Ricardo Guilherme Schmidt <ricardo@lhf.ind.br>
+The stand alone CUI is inspired by TC64SH, developed by Christoph Vilsmeier <http://www.vilsmeier-consulting.de/tc65sh.html>
 It uses small parts of OBEX4J, developed by Joey Shen <joey.shen@sun.com>
 And it was first inspired by ObexTool by Ondrej Janovskï <oj@alarex.cz>
 
 8. Questions
 You can ask questions about the use and about how the code works or how to make changes on it by the following contact information:
-Ricardo Guilherme Schmidt (work) <ricardo@lhf.ind.br>
-Ricardo Guilherme SChmidt (home) <3esmit@gmail.com>
+Ricardo Guilherme Schmidt (home) <3esmit@gmail.com>
 Cellphone +55 47 84037215 (Just speak english and portuguese)
 
 9. Other

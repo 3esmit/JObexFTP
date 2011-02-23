@@ -166,6 +166,8 @@ public final class OBEXFile extends OBEXObject {
                 }
                 setReady();
                 break;
+            default:
+                System.out.println("strange header: " +Utility.dumpBytes(header.toBytes()));
         }
     }
 

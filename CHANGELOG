@@ -1,3 +1,13 @@
+JObexFTP 2.4
+- Added disk information in about command
+- Added move (mv) operation
+- Added change mode (chmod) operation
+JObexFTP 2.3
+- Improved ObexClose. 
+- Improved estability. 
+- Faster operations. 
+- Code clean up. 
+- Fixed getContents of binary OBEXFile
 JObexFTP 2.2
 - API improvements and new restrictions (to prevent bad use)
 - Enhanced IDE integration sh

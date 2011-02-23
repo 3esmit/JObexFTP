@@ -35,6 +35,7 @@ import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.logging.Level;
+import java.util.logging.Logger;
 
 /**
  *
@@ -62,6 +63,7 @@ public class StandAloneApp {
             Log.info("Fatal: Port is unavaliable.", e);
             System.exit(1);
         } catch (Exception e) {
+            e.printStackTrace();
             Log.info("Fatal: ", e);
             System.exit(1);
         }
@@ -255,6 +257,7 @@ public class StandAloneApp {
                     ui.setDir("$");
                     device.setConnMode(ATConnection.MODE_AT);
                     device.addATEventListener(new ATEventListener() {
+
                         public void ATEvent(byte[] event) {
                             System.out.print(new String(event));
                         }
@@ -293,6 +296,21 @@ public class StandAloneApp {
                             obexClient.changeDirectory(tok[1], true);
                         }
                         updateDir(ui, obexClient);
+                    } else if (tok[0].equals("mv")) {
+                        if (tok.length > 2) {
+
+                            tok[1] = Utility.preparePath(tok[1]);
+                            tok[2] = Utility.preparePath(tok[2]);
+
+                            if (!tok[1].startsWith("/")) {
+                                tok[1] = Utility.preparePath(obexClient.getCurrentFolder().getPath() + "/" + tok[1]);
+
+                            }
+                            if (!tok[2].startsWith("/")) {
+                                tok[2] = Utility.preparePath(obexClient.getCurrentFolder().getPath() + "/" + tok[2]);
+                            }
+                            obexClient.moveObject(tok[1], tok[2]);
+                        }
                     } else if (tok[0].equals("ls") || tok[0].equals("dir")) {
                         ui.println(obexClient.loadFolderListing().getListing());
                     } else if (tok[0].equals("rm") || tok[0].equals("del")) {
@@ -307,6 +325,16 @@ public class StandAloneApp {
                             }
                             obexClient.removeObject(fileHolder);
                             obexClient.writeFile(fileHolder);
+                        }
+                    } else if (tok[0].equals("chmod")) {
+                        String user = "", group = "";
+                        switch (tok.length) {
+                            case 4:
+                                group = tok[3];
+                            case 3:
+                                user = tok[2];
+                            case 2:
+                                obexClient.setObjectPerm(new OBEXFile(obexClient.getCurrentFolder(), tok[1]), user.toUpperCase(), group.toUpperCase());
                         }
                     } else if (tok[0].equals("get")) {
                         if (tok.length > 1) {
@@ -388,18 +416,27 @@ public class StandAloneApp {
                 break;
         }
         ui.println("Mode: " + helper);
-        ui.println("Current folder: " + (device.getConnMode() == 1 ? device.getDevice().getRootFolder() : obexClient.getCurrentFolder().getPath()));
-
+        if (device.getConnMode() == ATConnection.MODE_DATA) {
+            try {
+                ui.println("Current folder: " + obexClient.getCurrentFolder().getPath());
+                ui.println("Disk total space: " + Utility.humanReadableByteCount(obexClient.getDiskSpace(), true));
+                ui.println("Disk free space: " + Utility.humanReadableByteCount(obexClient.getFreeSpace(), true));
+            } catch (IOException ex) {
+                Logger.getLogger(StandAloneApp.class.getName()).log(Level.SEVERE, null, ex);
+            }
+        }
     }
 
     private void printHelp(UserInterface ui) {
         ui.println("available commands:");
         ui.println("  cd <directory>");
         ui.println("  mkdir <directory>");
+        ui.println("  mv <oldPath> <newPath>");
         ui.println("  dir (or ls)");
         ui.println("  put <localFilepath> <deviceFilename>");
         ui.println("  get <deviceFilename> <localFilepath>");
         ui.println("  rm (or del) <deviceFilename>");
+        ui.println("  chmod <deviceFilename> [userPerm] [groupPerm]");
         ui.println("  sleep <milliseconds>");
         ui.println("  run [jar/jad path]");
         ui.println("  erasedisk [-y] ");

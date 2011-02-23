@@ -38,7 +38,8 @@ public abstract class OBEXObject {
     public static final OBEXFolder ROOT_FOLDER = new OBEXFolder(null, "a:");
     private final ByteArrayOutputStream contents = new ByteArrayOutputStream(600);
     private final OBEXFolder parentFolder; //parent folder cannot be changed.
-    private byte[] binaryName = {}, groupPerm = {'\"', '\"'}, userPerm = {'\"', '\"'};
+    private byte[] binaryName = {};
+    String groupPerm = "", userPerm = "";
     private Date modified = null, time = null;
     private boolean endOfBody = false;
     private String path = null;
@@ -129,7 +130,7 @@ public abstract class OBEXObject {
     /**
      * @return the userPerm
      */
-    public byte[] getUserPerm() {
+    public String getUserPerm() {
         return userPerm;
     }
 
@@ -137,20 +138,20 @@ public abstract class OBEXObject {
      * @param userPerm the userPerm to set
      */
     public void setUserPerm(final boolean read, final boolean write, final boolean delete) {
-        this.userPerm = Utility.buildPerm(read, write, delete, (byte) 0x38);
+        this.userPerm = (read ? "R" : "") + (write ? "W" : "") + (delete ? "D" : "");
     }
 
     public void setUserPerm(final String value) {
         if (value == null) {
             return;
         }
-        this.userPerm = Utility.buildPerm(value, (byte) 0x38);
+        this.userPerm = value;
     }
 
     /**
      * @return the groupPerm
      */
-    public byte[] getGroupPerm() {
+    public String getGroupPerm() {
         return groupPerm;
     }
 
@@ -159,14 +160,14 @@ public abstract class OBEXObject {
      * @param groupPerm the groupPerm to set
      */
     public void setGroupPerm(final boolean read, final boolean write, final boolean delete) {
-        this.groupPerm = Utility.buildPerm(read, write, delete, (byte) 0x38);
+        this.groupPerm = (read ? "R" : "") + (write ? "W" : "") + (delete ? "D" : "");
     }
 
     public void setGroupPerm(final String value) {
         if (value == null) {
             return;
         }
-        this.groupPerm = Utility.buildPerm(value, (byte) 0x38);
+        this.groupPerm = value;
     }
 
     /**
@@ -200,7 +201,6 @@ public abstract class OBEXObject {
     private void appendContent(final byte[] content) throws IOException {
         this.contents.write(content);
     }
-
 
     /**
      * @return the time
@@ -254,7 +254,7 @@ public abstract class OBEXObject {
     @Override
     public String toString() {
         StringBuilder builder = new StringBuilder();
-        Utility.listingFormat(builder, name, getSizeString(), getTime());
+        Utility.listingFormat(builder, name, getSizeString(), getTime(), getUserPerm(), getGroupPerm());
         return builder.toString();
     }
 

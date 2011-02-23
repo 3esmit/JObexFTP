@@ -112,8 +112,8 @@ public final class OBEXFolder extends OBEXObject {
         builder.append("\n Directory of ").append(getPath()).append("/\n\n").length();
 
         if (this != ROOT_FOLDER) {
-            Utility.listingFormat(builder, ".", getSizeString(), getTime());
-            Utility.listingFormat(builder, "..", getParentFolder().getSizeString(), getParentFolder().getTime());
+            Utility.listingFormat(builder, ".", getSizeString(), getTime(), getUserPerm(), getGroupPerm());
+            Utility.listingFormat(builder, "..", getParentFolder().getSizeString(), getParentFolder().getTime(), getParentFolder().getUserPerm(), getParentFolder().getGroupPerm());
         }
         for (Iterator<OBEXObject> it = subobjects.values().iterator(); it.hasNext();) {
             OBEXObject ob = it.next();
