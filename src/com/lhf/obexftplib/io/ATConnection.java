@@ -314,24 +314,24 @@ public class ATConnection {
         } catch (UnsupportedCommOperationException ex) {
             throw new IOException("System not supported.");
         }
-        switch (flowControl) {
-            case FLOW_NONE:
-                serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
-                break;
-            case FLOW_XONXOFF:
-                serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_XONXOFF_IN | SerialPort.FLOWCONTROL_XONXOFF_OUT);
-                break;
-            case FLOW_RTSCTS:
-                serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_RTSCTS_OUT | SerialPort.FLOWCONTROL_RTSCTS_IN);
-                break;
-        }
-        LOGGER.log(Level.FINEST, "Opening I/O");
-        is = serialPort.getInputStream();
-        os = serialPort.getOutputStream();
-        serialPort.enableReceiveTimeout(1000); // Really necessary for estabilization
-        serialPort.setOutputBufferSize(512);
-        serialPort.setInputBufferSize(512);
-        serialPort.notifyOnDataAvailable(true);
+            switch (flowControl) {
+                case FLOW_NONE:
+                    serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
+                    break;
+                case FLOW_XONXOFF:
+                    serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_XONXOFF_IN | SerialPort.FLOWCONTROL_XONXOFF_OUT);
+                    break;
+                case FLOW_RTSCTS:
+                    serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_RTSCTS_OUT | SerialPort.FLOWCONTROL_RTSCTS_IN);
+                    break;
+            }
+            LOGGER.log(Level.FINEST, "Opening I/O");
+            is = serialPort.getInputStream();
+            os = serialPort.getOutputStream();
+            serialPort.enableReceiveTimeout(1000); // Really necessary for estabilization
+            serialPort.setOutputBufferSize(512);
+            serialPort.setInputBufferSize(512);
+            serialPort.notifyOnDataAvailable(true);
         try {
             serialPort.addEventListener(eventListener);
         } catch (TooManyListenersException ex) {
@@ -345,8 +345,13 @@ public class ATConnection {
      * Method called after a connection is opened.
      */
     protected void onOpen() throws IOException {
-        estabilize();
-        identifyDevice();
+        if (isAnswering()) {
+            estabilize();
+            identifyDevice();
+        } else {
+            terminate();
+            throw new IOException("Device dos not react to AT test command");
+        }
     }
 
     /**
@@ -356,9 +361,9 @@ public class ATConnection {
     public void estabilize() throws IOException {
         LOGGER.log(Level.FINEST, "Estabilizating I/O");
         is.skip(is.available());
-        if (sendPacket(OBEXDevice.CMD_CHECK, 50).length < 1) {
-            closeDataMode();
-        }
+//        if (sendPacket(OBEXDevice.CMD_CHECK, 50).length < 1) {
+//            closeDataMode();
+//        }
         checkSend(new byte[]{'A', 'T', 'Z', '\r'}, 50); // reset settings
         checkSend(("AT+IPR=" + baudRate + "\r").getBytes(), 100);  //set baud rate
         checkSend(new byte[]{'A', 'T', 'E', '\r'}, 50); //disable echo

@@ -1,6 +1,6 @@
 /**
  * Last updated in 29/Jan/2011
- * 
+ *
  *    This file is part of JObexFTP.
  *
  *    JObexFTP is free software: you can redistribute it and/or modify
@@ -34,8 +34,15 @@ import java.io.File;
 import java.io.FileInputStream;
 import java.io.FileOutputStream;
 import java.io.IOException;
+import java.util.Enumeration;
+import java.util.HashSet;
+import java.util.Iterator;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import gnu.io.CommPort;
+import gnu.io.CommPortIdentifier;
+import gnu.io.NoSuchPortException;
+import gnu.io.PortInUseException;
 
 /**
  *
@@ -45,10 +52,6 @@ public class StandAloneApp {
 
     public static void main(String[] args) {
         try {
-            if (args.length == 0) {
-                printUsage();
-                System.exit(0);
-            }
             for (String arg : args) {
                 if ("--help".equals(arg) || "-h".equals(arg)) {
                     printUsage();
@@ -59,9 +62,6 @@ public class StandAloneApp {
                 }
             }
             new StandAloneApp().exec(args);
-        } catch (gnu.io.NoSuchPortException e) {
-            Log.info("Fatal: Port is unavaliable.", e);
-            System.exit(1);
         } catch (Exception e) {
             e.printStackTrace();
             Log.info("Fatal: ", e);
@@ -195,19 +195,47 @@ public class StandAloneApp {
                 }
             }
         }
-        if (portname == null) {
-            Log.info("Please specify the port.");
-            System.exit(0);
+        
+        ATConnection device = null;
+        if (portname != null) {
+            device = tryPort(portname);
         }
-        if (runMode != null) {
-            run(portname, runMode);
-            return;
+        if (device == null) {
+            Iterator<String> i = getAvailableSerialPorts().iterator();
+            while (i.hasNext() && device == null) {
+                portname = i.next();
+                Log.info("Trying port " + portname + "...");
+                device = tryPort(portname);
+            }
         }
-        ATConnection device = new ATConnection(portname);
-        device.setBaudRate(baudrate);
-        device.setFlowControl(flowControl);
-        Log.info("connecting to serial " + portname + " " + baudrate);
+        if (device != null) {
+            if (runMode != null) {
+                device.setConnMode(ATConnection.MODE_DISCONNECTED);
+                run(portname, runMode);
+            } else {
+                start(ui, device);
+            }
+        } else {
+            Log.info("Tried all ports, no TC65 found.");
+        }
+    }
 
+    private ATConnection tryPort(String portname) throws Exception {
+        try {
+            ATConnection device = new ATConnection(portname);
+            device.setBaudRate(baudrate);
+            device.setFlowControl(flowControl);
+            Log.info("connecting to serial " + portname + " " + baudrate);
+            device.setConnMode(ATConnection.MODE_AT);
+            return device;
+        } catch (IOException | NoSuchPortException | PortInUseException ex) {
+            Log.info("No TC65 found on port " + portname);
+            Log.debug(this.getClass(), "tryPort:" + ex);
+            return null;
+        }
+    }
+
+    private void start(UserInterface ui, ATConnection device) throws Exception {
         try {
 
             if (ui == null) {
@@ -217,16 +245,35 @@ public class StandAloneApp {
             processUserInterface(device, ui);
 
         } finally {
-            if (runMode == null) {
                 Log.info("disconnecting serial port");
-                device.setConnMode(ATConnection.MODE_DISCONNECTED);
-            }
+                device.setConnMode(ATConnection.MODE_DISCONNECTED);         
         }
 
     }
 
     private void updateDir(UserInterface ui, OBEXClient obexClient) {
         ui.setDir(obexClient.getCurrentFolder().getPath() + "/");
+    }
+
+    private static HashSet<String> getAvailableSerialPorts() {
+        HashSet<String> p = new HashSet<>();
+        Enumeration ports = CommPortIdentifier.getPortIdentifiers();
+        while (ports.hasMoreElements()) {
+            CommPortIdentifier com = (CommPortIdentifier) ports.nextElement();
+            if (com.getPortType() == CommPortIdentifier.PORT_SERIAL) {
+                try {
+                    CommPort port = com.open("CommUtil", 50);
+                    port.close();
+                    p.add(com.getName());
+                } catch (PortInUseException e) {
+                    Log.info("Port " + com.getName() + " busy.");
+                } catch (Exception e) {
+                    Log.info("Failed to open port " + com.getName());
+                    e.printStackTrace();
+                }
+            }
+        }
+        return p;
     }
 
     private void processUserInterface(ATConnection device, UserInterface ui) throws IOException {
