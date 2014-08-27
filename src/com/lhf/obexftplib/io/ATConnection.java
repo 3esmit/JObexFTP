@@ -192,6 +192,14 @@ public class ATConnection {
                 LOGGER.log(Level.FINE, "Found TC65 device.");
                 setDevice(OBEXDevice.TC65);
                 return;
+            } else if (s.indexOf("EGS5") > -1) {
+                LOGGER.log(Level.FINE, "Found EGS5 device.");
+                setDevice(OBEXDevice.TC65);
+                return;
+            } else if (s.indexOf("EGS5-X") > -1) {
+                LOGGER.log(Level.FINE, "Found EGS5-X device.");
+                setDevice(OBEXDevice.TC65);
+                return;
             } else if (s.indexOf("AT+CGMM") > -1) {
                 LOGGER.log(Level.WARNING, "Unexpected behavior, trying to fix.", s); //try restablize.
                 send(new byte[]{'A', 'T', 'E', '\r'}, 50); //disable echo
@@ -216,7 +224,7 @@ public class ATConnection {
     }
 
     /**
-     * Adds a ConnectionModeListener to recieve connection mode changes notifications.
+     * Adds a ConnectionModeListener to receive connection mode changes notifications.
      * @param listener the listener.
      * @see ConnectionModeListener
      */
@@ -225,7 +233,7 @@ public class ATConnection {
     }
 
     /**
-     * Removes a ConnectionModeListener to recieve connection mode changes notifications.
+     * Removes a ConnectionModeListener to receive connection mode changes notifications.
      * @param listener the listener.
      * @see ConnectionModeListener
      */
@@ -234,7 +242,7 @@ public class ATConnection {
     }
 
     /**
-     * Adds a ConnectionModeListener to recieve ready incoming data
+     * Adds a ConnectionModeListener to receive ready incoming data
      * @param listener the listener.
      * @see DataEventListener
      */
@@ -243,7 +251,7 @@ public class ATConnection {
     }
 
     /**
-     * Adds a ATEventListener to recieve ready incoming data
+     * Adds a ATEventListener to receive ready incoming data
      * @param listener the listener.
      * @see ATEventListener
      */
@@ -252,7 +260,7 @@ public class ATConnection {
     }
 
     /**
-     * Removes a DataEventListener to recieve ready incoming data
+     * Removes a DataEventListener to receive ready incoming data
      * @param listener the listener.
      * @see DataEventListener
      */
@@ -261,7 +269,7 @@ public class ATConnection {
     }
 
     /**
-     * Removes a ATEventListener to recieve ready incoming data
+     * Removes a ATEventListener to receive ready incoming data
      * @param listener the listener.
      * @see ATEventListener
      */
@@ -289,7 +297,7 @@ public class ATConnection {
         if (!hasIncomingPacket) {
             incomingData = new byte[0];
         }
-        LOGGER.log(Level.FINER, "Recieve {0}", new String(incomingData));
+        LOGGER.log(Level.FINER, "Receive {0}", new String(incomingData));
         return incomingData;
     }
 
@@ -592,7 +600,7 @@ public class ATConnection {
     private final class ATSerialPortEventListener implements SerialPortEventListener {
 
         /**
-         * Method used to recieve SerialPortEvents.
+         * Method used to receive SerialPortEvents.
          * @param spe
          */
         public void serialEvent(final SerialPortEvent spe) {

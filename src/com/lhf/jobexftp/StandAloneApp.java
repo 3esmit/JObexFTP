@@ -176,10 +176,12 @@ public class StandAloneApp {
                 }
             } else if ("-d".equals(args[i]) || "--debug".equals(args[i])) {
                 Log.logLevel = Log.LOG_DEBUG;
-                Utility.getLogger().setLevel(Level.FINEST);
+                //Utility.getLogger().setLevel(Level.FINEST);
+                Utility.configLogger(Level.FINEST);
             } else if ("-q".equals(args[i]) || "--quiet".equals(args[i])) {
                 Log.logLevel = Log.LOG_NONE;
-                Utility.getLogger().setLevel(Level.SEVERE);
+                //Utility.getLogger().setLevel(Level.SEVERE);
+                Utility.configLogger(Level.SEVERE);
             } else if ("-f".equals(args[i]) || "--file".equals(args[i])) {
                 Log.info("processing command file " + args[i + 1]);
                 ui = new CommandFileUserInterface(new File(args[i + 1]));
