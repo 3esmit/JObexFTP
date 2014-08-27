@@ -535,7 +535,7 @@ public class OBEXClient {
     private class ObexEventListener implements DataEventListener, ConnectionModeListener {
 
         /**
-         * Method to recieve OBEXEvents from ATConnection.
+         * Method to receive OBEXEvents from ATConnection.
          * @param event the event.
          */
         public void DataEvent(final byte[] event) {
