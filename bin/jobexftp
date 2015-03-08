@@ -1,8 +1,0 @@
-#!/bin/bash
-currentdir=`dirname "$(readlink -f $0)"`
-_cp=""$currentdir"/lib/nrjavaserial-3.8.4"
-
-java -cp "$_cp":"$currentdir"/JObexFTP2.jar com.lhf.jobexftp.StandAloneApp "$@"
-
-
-

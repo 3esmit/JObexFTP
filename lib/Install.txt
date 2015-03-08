@@ -1,5 +1,0 @@
-To install nrjavaserial system wide, simply copy it into <JAVA_HOME>/jre/lib/ext.
-
-http://code.google.com/p/nrjavaserial/
-
-Alternatively, use the makefile or launchers.
