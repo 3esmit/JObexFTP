@@ -1,20 +1,20 @@
 /**
  * Last updated in 29/Jan/2011
  *
- *    This file is part of JObexFTP.
+ * This file is part of JObexFTP.
  *
- *    JObexFTP is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU Lesser General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ * JObexFTP is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option) any
+ * later version.
  *
- *    JObexFTP is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License for more details.
+ * JObexFTP is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * details.
  *
- *    You should have received a copy of the GNU Lesser General Public License
- *    along with JObexFTP.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with JObexFTP. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 package com.lhf.obexftplib.io;
@@ -24,15 +24,6 @@ import com.lhf.obexftplib.event.ATEventListener;
 import com.lhf.obexftplib.event.DataEventListener;
 import com.lhf.obexftplib.etc.OBEXDevice;
 import com.lhf.obexftplib.etc.Utility;
-import gnu.io.CommPort;
-import gnu.io.CommPortIdentifier;
-import gnu.io.NoSuchPortException;
-import gnu.io.PortInUseException;
-import gnu.io.RXTXPort;
-import gnu.io.SerialPort;
-import gnu.io.SerialPortEvent;
-import gnu.io.SerialPortEventListener;
-import gnu.io.UnsupportedCommOperationException;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.OutputStream;
@@ -41,35 +32,46 @@ import java.util.Iterator;
 import java.util.TooManyListenersException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jssc.SerialPort;
+import jssc.SerialPortEvent;
+import jssc.SerialPortEventListener;
+import jssc.SerialPortException;
+import jssc.SerialPortTimeoutException;
 
 /**
  * Class used for Serialconnections using AT protocol
+ *
  * @author Ricardo Guilherme Schmidt <ricardo@lhf.ind.br>
  */
 public class ATConnection {
 
     /**
      * Defines the Flow Control to none;
+     *
      * @see setFlowControl()
      */
     public static final byte FLOW_NONE = '0';
     /**
      * Defines the Flow Control to none;
+     *
      * @see setFlowControl()
      */
     public static final byte FLOW_XONXOFF = '1';
     /**
      * Defines the Flow Control to none;
+     *
      * @see setFlowControl()
      */
     public static final byte FLOW_RTSCTS = '3';
     /**
      * Defines the Connection Mode to disconnected;
+     *
      * @see setConnMode(int newConnMode)
      */
     public static final int MODE_DISCONNECTED = 0;
     /**
      * Defines the Connection Mode to AT Mode;
+     *
      * @see setConnMode(int newConnMode)
      */
     public static final int MODE_AT = 1;
@@ -77,10 +79,12 @@ public class ATConnection {
     public static final int MAX_TIMEOUT_RETRIES = 5;
     /**
      * Defines the Connection Mode to Data Mode;
+     *
      * @see setConnMode(int newConnMode)
      */
     public static final int MODE_DATA = 2;
-    private static final Logger LOGGER = Logger.getLogger("com.lhf.jobexftp");;
+    private static final Logger LOGGER = Logger.getLogger("com.lhf.jobexftp");
+    ;
     private final SerialPortEventListener eventListener = new ATSerialPortEventListener();
     private final ArrayList<ConnectionModeListener> connModeListners = new ArrayList<ConnectionModeListener>(10);
     private final ArrayList<DataEventListener> dataEventListners = new ArrayList<DataEventListener>(10);
@@ -91,34 +95,27 @@ public class ATConnection {
     private byte flowControl = FLOW_RTSCTS;
     private byte[] incomingData;
     private boolean hasIncomingPacket;
-    private CommPortIdentifier commPortIdentifier;
-    private InputStream is;
-    private OutputStream os;
-    private RXTXPort serialPort;
+//    private CommPortIdentifier commPortIdentifier;
+    private String comPortIdentifier;
+    private SerialPort serialPort;
     private OBEXDevice device;
     private int errors = 0;
 
     /**
-     * Creates a connection stream to serial device using a string as port identifier
+     * Creates a connection stream to serial device using a string as port
+     * identifier
+     *
      * @param connPortPath the path to commport
      * @throws NoSuchPortException if the path is invalid
      * @throws PortInUseException if the port is in use
      */
-    public ATConnection(final String connPortPath) throws NoSuchPortException, PortInUseException {
-        this(Utility.addPortToRxTx(connPortPath));
-    }
-
-    /**
-     * Creates a connection stream to serial device using a CommPortIdentifier
-     * @param commPortIdentifier
-     */
-    public ATConnection(final CommPortIdentifier commPortIdentifier) {
-        System.setProperty("gnu.io.rxtx.NoVersionOutput", "true");
-        this.commPortIdentifier = commPortIdentifier;
+    public ATConnection(final String connPortPath) {
+        comPortIdentifier = connPortPath;
     }
 
     /**
      * Defines the connection mode.
+     *
      * @param newConnMode the constant id to connection mode to be set
      * @throws IOException if a io error occurs
      * @throws UnsupportedCommOperationException
@@ -127,7 +124,7 @@ public class ATConnection {
      * @see ATConnection#MODE_AT
      * @see ATConnection#MODE_DATA
      */
-    public synchronized void setConnMode(final int newConnMode) throws IOException {
+    public synchronized void setConnMode(final int newConnMode) throws IOException, SerialPortException, SerialPortTimeoutException {
         if (connMode == newConnMode) { //nothing to do
             return;
         }
@@ -168,9 +165,11 @@ public class ATConnection {
 
     /**
      * Sends (AT) commands to the stream.
+     *
      * @param s the string to be send
      * @return the response
-     * @throws IOException if OutputStream or InputStream gives error, is closed, or if connMode is wrong.
+     * @throws IOException if OutputStream or InputStream gives error, is
+     * closed, or if connMode is wrong.
      */
     public synchronized byte[] send(final byte[] b, final int timeout) throws IOException {
         if (connMode != MODE_AT) {
@@ -199,7 +198,7 @@ public class ATConnection {
                 LOGGER.log(Level.FINE, "Found XT75 device will handle this like TC65.");
                 setDevice(OBEXDevice.TC65);
                 return;
-             } else if (s.indexOf("XT65") > -1) {
+            } else if (s.indexOf("XT65") > -1) {
                 LOGGER.log(Level.FINE, "Found XT65 device will handle this like TC65.");
                 setDevice(OBEXDevice.TC65);
                 return;
@@ -227,7 +226,9 @@ public class ATConnection {
     }
 
     /**
-     * Adds a ConnectionModeListener to recieve connection mode changes notifications.
+     * Adds a ConnectionModeListener to recieve connection mode changes
+     * notifications.
+     *
      * @param listener the listener.
      * @see ConnectionModeListener
      */
@@ -236,7 +237,9 @@ public class ATConnection {
     }
 
     /**
-     * Removes a ConnectionModeListener to recieve connection mode changes notifications.
+     * Removes a ConnectionModeListener to recieve connection mode changes
+     * notifications.
+     *
      * @param listener the listener.
      * @see ConnectionModeListener
      */
@@ -246,6 +249,7 @@ public class ATConnection {
 
     /**
      * Adds a ConnectionModeListener to recieve ready incoming data
+     *
      * @param listener the listener.
      * @see DataEventListener
      */
@@ -255,6 +259,7 @@ public class ATConnection {
 
     /**
      * Adds a ATEventListener to recieve ready incoming data
+     *
      * @param listener the listener.
      * @see ATEventListener
      */
@@ -264,6 +269,7 @@ public class ATConnection {
 
     /**
      * Removes a DataEventListener to recieve ready incoming data
+     *
      * @param listener the listener.
      * @see DataEventListener
      */
@@ -273,6 +279,7 @@ public class ATConnection {
 
     /**
      * Removes a ATEventListener to recieve ready incoming data
+     *
      * @param listener the listener.
      * @see ATEventListener
      */
@@ -281,30 +288,36 @@ public class ATConnection {
     }
 
     /**
-     * Sends packet data to output stream, abd waits until the modem answers
-     * OK or ERROR.
+     * Sends packet data to output stream, abd waits until the modem answers OK
+     * or ERROR.
+     *
      * @param b the data
      * @param timeout timeout of waiting
-     * @return an array containging the data, or an array of 0 positions if timedout
+     * @return an array containging the data, or an array of 0 positions if
+     * timedout
      * @throws IOException if an IO exceptio occurs
      */
     private synchronized byte[] sendPacket(final byte[] b, final int timeout) throws IOException {
         LOGGER.log(Level.FINER, "Send {0}", new String(b));
         synchronized (holder) {
-            os.write(b);
             try {
+                serialPort.writeBytes(b);
+
                 hasIncomingPacket = false;
                 holder.wait(timeout);
                 //Thread.currentThread().sleep(100);
-                for (int i=0; i<MAX_TIMEOUT_RETRIES; i++) {
-                    if (new String(incomingData).indexOf("OK")==-1 && new String(incomingData).indexOf("ERROR")==-1 ) {
-                        LOGGER.log(Level.FINEST,"No valid answer from modem "
-                                + "waiting another: ["+timeout+"ms].");
+                for (int i = 0; i < MAX_TIMEOUT_RETRIES; i++) {
+                    
+                    if (incomingData==null || (!new String(incomingData).contains("OK") && !new String(incomingData).contains("ERROR"))) {
+                        LOGGER.log(Level.FINEST, "No valid answer from modem "
+                                + "waiting another: [" + timeout + "ms].");
                         holder.wait(timeout);
                     }
                 }
             } catch (InterruptedException iE) {
                 System.out.println("**********************");
+            } catch (SerialPortException ex) {
+                Logger.getLogger(ATConnection.class.getName()).log(Level.SEVERE, null, ex);
             }
         }
         if (!hasIncomingPacket) {
@@ -315,47 +328,39 @@ public class ATConnection {
     }
 
     /**
-     * Open SerialPort, set the serialport params defined, the flowcontrol defined and the inputstream and the outputstream;
+     * Open SerialPort, set the serialport params defined, the flowcontrol
+     * defined and the inputstream and the outputstream;
+     *
      * @throws IOException if an io error occurs
-     * @throws UnsupportedCommOperationException if it could not set the serialport params or the flowcontrol
+     * @throws UnsupportedCommOperationException if it could not set the
+     * serialport params or the flowcontrol
      * @throws PortInUseException if the port specified is in use.
      */
-    private synchronized void open() throws IOException {
+    private synchronized void open() throws IOException, SerialPortException, SerialPortTimeoutException {
         LOGGER.log(Level.FINEST, "Configuring serial port");
-        CommPort commPort;
+
         try {
-            commPort = commPortIdentifier.open(this.getClass().getName(), 2000);
-        } catch (PortInUseException ex) {
-            throw new IOException("Port is in use");
-        }
-        serialPort = (RXTXPort) commPort;
-        try {
-            serialPort.setSerialPortParams(baudRate, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
-            serialPort.setEndOfInputChar((byte) 10);
-        } catch (UnsupportedCommOperationException ex) {
-            throw new IOException("System not supported.");
-        }
-        switch (flowControl) {
-            case FLOW_NONE:
-                serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
-                break;
-            case FLOW_XONXOFF:
-                serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_XONXOFF_IN | SerialPort.FLOWCONTROL_XONXOFF_OUT);
-                break;
-            case FLOW_RTSCTS:
-                serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_RTSCTS_OUT | SerialPort.FLOWCONTROL_RTSCTS_IN);
-                break;
-        }
-        LOGGER.log(Level.FINEST, "Opening I/O");
-        is = serialPort.getInputStream();
-        os = serialPort.getOutputStream();
-        serialPort.enableReceiveTimeout(1000); // Really necessary for estabilization
-        serialPort.setOutputBufferSize(512);
-        serialPort.setInputBufferSize(512);
-        serialPort.notifyOnDataAvailable(true);
-        try {
+            serialPort = new SerialPort(getComPortIdentifier());
+            serialPort.openPort();
+
+            serialPort.setParams(baudRate, SerialPort.DATABITS_8, SerialPort.STOPBITS_1, SerialPort.PARITY_NONE);
+
+//        switch (flowControl) {
+//            case FLOW_NONE:
+//                serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_NONE);
+//                break;
+//            case FLOW_XONXOFF:
+//                serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_XONXOFF_IN | SerialPort.FLOWCONTROL_XONXOFF_OUT);
+//                break;
+//            case FLOW_RTSCTS:
+//                serialPort.setFlowControlMode(SerialPort.FLOWCONTROL_RTSCTS_OUT | SerialPort.FLOWCONTROL_RTSCTS_IN);
+//                break;
+//        }
+            int mask = SerialPort.MASK_RXCHAR;
+            serialPort.setEventsMask(mask);//Set mask
+
             serialPort.addEventListener(eventListener);
-        } catch (TooManyListenersException ex) {
+        } catch (SerialPortException ex) {
             Logger.getLogger(ATConnection.class.getName()).log(Level.SEVERE, null, ex);
         }
         connMode = MODE_AT;
@@ -365,18 +370,20 @@ public class ATConnection {
     /**
      * Method called after a connection is opened.
      */
-    protected void onOpen() throws IOException {
+    protected void onOpen() throws IOException, SerialPortException, SerialPortTimeoutException {
         estabilize();
         identifyDevice();
     }
 
     /**
      * Estabilizates the input/output operations, and turns off echo mode.
+     *
      * @throws IOException
      */
-    public void estabilize() throws IOException {
+    public void estabilize() throws IOException, SerialPortException, SerialPortTimeoutException {
         LOGGER.log(Level.FINEST, "Estabilizating I/O");
-        is.skip(is.available());
+        serialPort.readBytes(serialPort.getInputBufferBytesCount(), 1000);
+        
         if (sendPacket(OBEXDevice.CMD_CHECK, 50).length < 1) {
             closeDataMode();
         }
@@ -401,10 +408,12 @@ public class ATConnection {
     }
 
     /**
-     * Closes the SerialPort, the OutputStream and the InputStream, consecutevly.
+     * Closes the SerialPort, the OutputStream and the InputStream,
+     * consecutevly.
+     *
      * @throws IOException if an IO error occurs.
      */
-    private void close() throws IOException {
+    private void close() throws IOException, SerialPortException {
         try {
             onClose();
         } finally {
@@ -415,33 +424,21 @@ public class ATConnection {
     /**
      * Closes the serial port
      */
-    public void terminate() {
+    public void terminate() throws SerialPortException {
         if (serialPort != null) {
             serialPort.removeEventListener();
         }
-        if (os != null) {
-            try {
-                os.close();
-            } catch (IOException ex) {
-                Logger.getLogger(ATConnection.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
-        if (is != null) {
-            try {
-                is.close();
-            } catch (IOException ex) {
-                Logger.getLogger(ATConnection.class.getName()).log(Level.SEVERE, null, ex);
-            }
-        }
         if (serialPort != null) {
-            serialPort.close();
+            serialPort.closePort();
         }
         connMode = MODE_DISCONNECTED;
     }
 
     /**
      * Sends +++ to OutputStream, followed and preceded by a pause of 1000 ms.
-     * Then checks if the response contains OK to certify the new mode has been established.
+     * Then checks if the response contains OK to certify the new mode has been
+     * established.
+     *
      * @throws IOException if an IO error occurs.
      */
     private void closeDataMode() throws IOException {
@@ -456,6 +453,7 @@ public class ATConnection {
 
     /**
      * This method sets the flowcontrol in atcmd and opiens a data connection
+     *
      * @throws IOException if an IO Error occurs.
      */
     private void openDataMode() throws IOException {
@@ -470,7 +468,8 @@ public class ATConnection {
     }
 
     /**
-     * Method used for notifying the listeners when a connectionmode has changed.
+     * Method used for notifying the listeners when a connectionmode has
+     * changed.
      */
     private void notifyModeListeners(final int newConnMode, boolean changed) {
         for (int i = 0; i < connModeListners.size(); i++) {
@@ -479,7 +478,8 @@ public class ATConnection {
     }
 
     /**
-     * Method used for notifying the dataeventlisteners when a incoming data is ready.
+     * Method used for notifying the dataeventlisteners when a incoming data is
+     * ready.
      */
     private void notifyDataEventListeners(final byte[] event) {
         for (Iterator<DataEventListener> it = dataEventListners.iterator(); it.hasNext();) {
@@ -488,7 +488,8 @@ public class ATConnection {
     }
 
     /**
-     * Method used for notifying the ateventlisteners when a incoming at is ready.
+     * Method used for notifying the ateventlisteners when a incoming at is
+     * ready.
      */
     protected void notifyATEventListeners(final byte[] event) {
         for (Iterator<ATEventListener> it = atEventListners.iterator(); it.hasNext();) {
@@ -496,41 +497,9 @@ public class ATConnection {
         }
     }
 
-    public void clearInputStream() throws IOException {
-        if (is != null) {
-            is.skip(is.available());
-        }
-    }
-
-    /***********************
-     * Getters and Setters *
-     ***********************/
-    /**
-     * Gets the inuse inputstream
-     * @return the InputStream of serialPort created by connection
-     */
-    InputStream getInputStream() {
-        return is;
-    }
-
-    /**
-     * Gets the used outputsteram.
-     * @return the OutputStream of serialPort created by connection
-     */
-    OutputStream getOutputStream() {
-        return os;
-    }
-
-    /**
-     * Gets the CommPortIdentifier used by connection.
-     * @return the CommPortIdentifier used by connection.
-     */
-    public CommPortIdentifier getCommPortIdentifier() {
-        return commPortIdentifier;
-    }
-
     /**
      * Get the current connection mode
+     *
      * @return the connection mode.
      * @see ATConnection#MODE_DISCONNECTED
      * @see ATConnection#MODE_AT
@@ -541,8 +510,10 @@ public class ATConnection {
     }
 
     /**
-     * Sets the baudrate.
-     * This method just takes effect before connect, if it is setted in a connected state, there is a need to disconnect and reconnect to take effect.
+     * Sets the baudrate. This method just takes effect before connect, if it is
+     * setted in a connected state, there is a need to disconnect and reconnect
+     * to take effect.
+     *
      * @param baudRate
      */
     public void setBaudRate(final int baudRate) {
@@ -550,8 +521,10 @@ public class ATConnection {
     }
 
     /**
-     * Sets the flow control
-     * This method just takes effect before connect, if it is setted in a connected state, there is a need to disconnect and reconnect to take effect.
+     * Sets the flow control This method just takes effect before connect, if it
+     * is setted in a connected state, there is a need to disconnect and
+     * reconnect to take effect.
+     *
      * @param flowControl the flow control to set
      * @see ATConnection#FLOW_NONE
      * @see ATConnection#FLOW_RTSCTS
@@ -567,6 +540,7 @@ public class ATConnection {
 
     /**
      * Method that gets the flowcontrol setted
+     *
      * @return the setted flowcontrol
      * @see ATConnection#FLOW_NONE
      * @see ATConnection#FLOW_RTSCTS
@@ -591,9 +565,13 @@ public class ATConnection {
         this.device = device;
     }
 
-    public byte[] readAll() throws IOException {
-        byte[] incomingData = new byte[is.available()];
-        is.read(incomingData);
+    public void writeAll (byte[] data) throws SerialPortException {
+        serialPort.writeBytes(data);
+    }
+    
+    public byte[] readAll() throws IOException, SerialPortException {
+        byte[] incomingData;
+        incomingData = serialPort.readBytes();
         return incomingData;
     }
 
@@ -602,24 +580,45 @@ public class ATConnection {
     }
 
     /**
-     * Private class to hold the SerialPortEventListener#serialEvent(gnu.io.SerialPortEvent) out visibility of public.
+     * @return the comPortIdentifier
+     */
+    public String getComPortIdentifier() {
+        return comPortIdentifier;
+    }
+
+    /**
+     * @param comPortIdentifier the comPortIdentifier to set
+     */
+    public void setComPortIdentifier(String comPortIdentifier) {
+        this.comPortIdentifier = comPortIdentifier;
+    }
+
+    /**
+     * Private class to hold the
+     * SerialPortEventListener#serialEvent(gnu.io.SerialPortEvent) out
+     * visibility of public.
+     *
      * @see SerialPortEventListener#serialEvent(gnu.io.SerialPortEvent)
      */
     private final class ATSerialPortEventListener implements SerialPortEventListener {
 
         /**
          * Method used to recieve SerialPortEvents.
+         *
          * @param spe
          */
         public void serialEvent(final SerialPortEvent spe) {
             synchronized (holder) {
-                switch (spe.getEventType()) {
-                    case SerialPortEvent.DATA_AVAILABLE:
+                if (spe.isRXCHAR()) {
                         try {
                             incomingData = readAll();
                         } catch (Throwable ex) {
                             notifyModeListeners(connMode, false);
-                            terminate();
+                            try {
+                                terminate();
+                            } catch (SerialPortException ex1) {
+                                Logger.getLogger(ATConnection.class.getName()).log(Level.SEVERE, null, ex1);
+                            }
                             connMode = MODE_DISCONNECTED;
                             notifyModeListeners(connMode, true);
                         }

@@ -10,10 +10,8 @@ import com.lhf.obexftplib.io.obexop.ConnectResponse;
 import com.lhf.obexftplib.io.obexop.DisconnectResponse;
 import com.lhf.obexftplib.io.obexop.PutResponse;
 import com.lhf.obexftplib.io.obexop.Response;
-import gnu.io.CommPortIdentifier;
 import java.util.Date;
 import java.util.TimeZone;
-import static junit.framework.Assert.assertEquals;
 import junit.framework.TestCase;
 
 

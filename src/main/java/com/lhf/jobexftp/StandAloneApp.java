@@ -36,6 +36,9 @@ import java.io.FileOutputStream;
 import java.io.IOException;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jssc.SerialPortException;
+import jssc.SerialPortTimeoutException;
+
 
 /**
  *
@@ -59,7 +62,7 @@ public class StandAloneApp {
                 }
             }
             new StandAloneApp().exec(args);
-        } catch (gnu.io.NoSuchPortException e) {
+        } catch (SerialPortException e) {
             Log.info("Fatal: Port is unavaliable.", e);
             System.exit(1);
         } catch (Exception e) {
@@ -232,7 +235,7 @@ public class StandAloneApp {
         ui.setDir(obexClient.getCurrentFolder().getPath() + "/");
     }
 
-    private void processUserInterface(ATConnection device, UserInterface ui) throws IOException {
+    private void processUserInterface(ATConnection device, UserInterface ui) throws IOException, SerialPortException, SerialPortTimeoutException {
         OBEXClient obexClient = new OBEXClient(device);
         try {
             String cmdline;
@@ -391,7 +394,7 @@ public class StandAloneApp {
 
     private void printAbout(UserInterface ui, ATConnection device, OBEXClient obexClient) {
         String helper;
-        ui.println("Connected to: " + device.getCommPortIdentifier().getName());
+        ui.println("Connected to: " + device.getComPortIdentifier());
         ui.println("Device identified: " + device.getDevice().name());
         switch (device.getFlowControl()) {
             case ATConnection.FLOW_XONXOFF:
@@ -425,6 +428,8 @@ public class StandAloneApp {
                 ui.println("Disk total space: " + Utility.humanReadableByteCount(obexClient.getDiskSpace(), true));
                 ui.println("Disk free space: " + Utility.humanReadableByteCount(obexClient.getFreeSpace(), true));
             } catch (IOException ex) {
+                Logger.getLogger(StandAloneApp.class.getName()).log(Level.SEVERE, null, ex);
+            } catch (SerialPortException ex) {
                 Logger.getLogger(StandAloneApp.class.getName()).log(Level.SEVERE, null, ex);
             }
         }

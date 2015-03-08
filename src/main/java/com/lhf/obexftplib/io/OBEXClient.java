@@ -30,6 +30,8 @@ import java.io.OutputStream;
 import java.util.ArrayList;
 import java.util.logging.Level;
 import java.util.logging.Logger;
+import jssc.SerialPortException;
+import jssc.SerialPortTimeoutException;
 
 /**
  * This class manages the OBEX Connection, while device is in data mode. It represents an OBEX client.
@@ -49,7 +51,7 @@ public class OBEXClient {
     private boolean hasIncomingPacket;
     private boolean connected;
     private final ATConnection conn;
-    private OutputStream os;
+    
 
     /**
      * Creates a new instance of OBEXClient. ATConnection is an needed class to control de I/O.
@@ -64,7 +66,7 @@ public class OBEXClient {
      * @return true if operation was successful.
      * @throws IOException
      */
-    public boolean connect() throws IOException {
+    public boolean connect() throws IOException, SerialPortException, SerialPortTimeoutException {
         if (connected) {
             return connected;
         }
@@ -74,7 +76,7 @@ public class OBEXClient {
         if (conn.getConnMode() != ATConnection.MODE_DATA) {
             conn.setConnMode(ATConnection.MODE_DATA);
         }
-        this.os = conn.getOutputStream();
+        
         this.conn.addConnectionModeListener(eventListener);
         this.conn.addDataEventListener(eventListener);
         currentFolder = OBEXObject.ROOT_FOLDER;
@@ -102,7 +104,7 @@ public class OBEXClient {
      * @return true if operation was successful.
      * @throws IOException
      */
-    public boolean disconnect() throws IOException {
+    public boolean disconnect() throws IOException, SerialPortException {
 
         if (!connected) {
             return !connected;
@@ -127,7 +129,7 @@ public class OBEXClient {
      * Abort any running operation.
      * @return true if operation was successful.
      */
-    public boolean abort() throws IOException {
+    public boolean abort() throws IOException, SerialPortException {
         logger.log(Level.FINER, "Aborting");
         boolean r = false;
         AbortRequest req = new AbortRequest();
@@ -143,7 +145,7 @@ public class OBEXClient {
      * Erases all deletable files in server disk. WARNING: this operation is irreversible, and does not ask confirmation.
      * @return true if operation was successful.
      */
-    public boolean eraseDisk() throws IOException {
+    public boolean eraseDisk() throws IOException, SerialPortException {
         synchronized (this) {
             logger.log(Level.FINEST, "Erasing disk.");
             PutRequest req = new PutRequest();
@@ -160,7 +162,7 @@ public class OBEXClient {
      * @return the free space in bytes
      * @throws IOException
      */
-    public long getDiskSpace() throws IOException {
+    public long getDiskSpace() throws IOException, SerialPortException {
         synchronized (this) {
             PutRequest req = new PutRequest();
             req.setFinal();
@@ -177,7 +179,7 @@ public class OBEXClient {
      * @return the free space in bytes
      * @throws IOException
      */
-    public long getFreeSpace() throws IOException {
+    public long getFreeSpace() throws IOException, SerialPortException {
         synchronized (this) {
             PutRequest req = new PutRequest();
             req.setFinal();
@@ -195,7 +197,7 @@ public class OBEXClient {
      * @param file The object containing the name.
      * @return true if successful operation.
      */
-    public boolean removeObject(final OBEXObject file) throws IOException {
+    public boolean removeObject(final OBEXObject file) throws IOException, SerialPortException {
         return removeObject(file.getBinaryName());
     }
 
@@ -204,7 +206,7 @@ public class OBEXClient {
      * @param filename the name of the file to delete
      * @return true if successful operation.
      */
-    public boolean removeObject(final byte[] filename) throws IOException {
+    public boolean removeObject(final byte[] filename) throws IOException, SerialPortException {
         synchronized (this) {
             logger.log(Level.FINEST, "Removing object {0}", new String(filename));
 
@@ -220,7 +222,7 @@ public class OBEXClient {
         }
     }
 
-    public boolean setObjectPerm(OBEXObject object, String userPerm, String groupPerm) throws IOException {
+    public boolean setObjectPerm(OBEXObject object, String userPerm, String groupPerm) throws IOException, SerialPortException {
         synchronized (this) {
 
             PutRequest req = new PutRequest();
@@ -239,11 +241,11 @@ public class OBEXClient {
         }
     }
 
-    public boolean moveObject(OBEXObject object, String newPath) throws IOException {
+    public boolean moveObject(OBEXObject object, String newPath) throws IOException, SerialPortException {
         return moveObject(object.getPath(), newPath);
     }
 
-    public boolean moveObject(String oldPath, String newPath) throws IOException {
+    public boolean moveObject(String oldPath, String newPath) throws IOException, SerialPortException {
         synchronized (this) {
             PutRequest req = new PutRequest();
             req.setFinal();
@@ -264,7 +266,7 @@ public class OBEXClient {
      * @throws IOException
      * @see OBEXClient#changeDirectory(java.lang.String, boolean) 
      */
-    public boolean changeDirectory(final OBEXObject object, final boolean create) throws IOException {
+    public boolean changeDirectory(final OBEXObject object, final boolean create) throws IOException, SerialPortException {
         String path;
         if (object instanceof OBEXFolder) {
             if (object == getCurrentFolder()) {
@@ -289,7 +291,7 @@ public class OBEXClient {
      * @throws IOException if an IO error occurs.
      * @see OBEXClient#changeDirectory(com.lhf.obexftplib.fs.OBEXObject)
      */
-    public boolean changeDirectory(String path, final boolean create) throws IOException {
+    public boolean changeDirectory(String path, final boolean create) throws IOException, SerialPortException {
         boolean success = true;
         path = Utility.preparePath(path); //prepare path to help users who havent read the docs.
         if (path.startsWith("/")) { //if changeDir path is absolute
@@ -313,7 +315,7 @@ public class OBEXClient {
      * @return the file contents.
      * @throws IOException
      */
-    public OBEXFile readFile(final String filename) throws IOException {
+    public OBEXFile readFile(final String filename) throws IOException, SerialPortException {
         return readFile(new OBEXFile(getCurrentFolder(), filename));
     }
 
@@ -323,7 +325,7 @@ public class OBEXClient {
      * @return the filled file
      * @throws IOException if an IO error occurs
      */
-    public OBEXFile readFile(final OBEXFile file) throws IOException {
+    public OBEXFile readFile(final OBEXFile file) throws IOException, SerialPortException {
         synchronized (this) {
             GetRequest request = new GetRequest();
             request.setFinal();
@@ -340,7 +342,7 @@ public class OBEXClient {
      * @return a byte array containing the xml
      * @throws IOException if an IO error occurs
      */
-    public OBEXFolder loadFolderListing() throws IOException {
+    public OBEXFolder loadFolderListing() throws IOException, SerialPortException {
         synchronized (this) {
             GetRequest request = new GetRequest();
             request.setFinal();
@@ -359,7 +361,7 @@ public class OBEXClient {
      * @param file
      * @return true if operation was successful.
      */
-    public boolean writeFile(final OBEXFile file) throws IOException {
+    public boolean writeFile(final OBEXFile file) throws IOException, SerialPortException {
         synchronized (this) {
             PutRequest req = new PutRequest(file.getHeaderSet());
             PutResponse res = new PutResponse(Response.BADREQUEST);
@@ -397,7 +399,7 @@ public class OBEXClient {
      * @return the put response or null if timedout.
      * @throws IOException if an io error occurs.
      */
-    private PutResponse put(final PutRequest req) throws IOException {
+    private PutResponse put(final PutRequest req) throws IOException, SerialPortException {
         sendPacketAndWait(req, TIMEOUT);
         if (hasIncomingPacket) {
             return new PutResponse(incomingData.pullData());
@@ -412,7 +414,7 @@ public class OBEXClient {
      * @return a boolean indicating true for successful operation
      * @throws IOException
      */
-    private boolean setPath(final String folder, final boolean create) throws IOException {
+    private boolean setPath(final String folder, final boolean create) throws IOException, SerialPortException {
         synchronized (this) {
             boolean success = false;
             SetPathRequest req = new SetPathRequest();
@@ -440,7 +442,7 @@ public class OBEXClient {
         }
     }
 
-    private GetResponse get(final GetRequest request) throws IOException {
+    private GetResponse get(final GetRequest request) throws IOException, SerialPortException {
         sendPacketAndWait(request, TIMEOUT);
         if (hasIncomingPacket) {
             return new GetResponse(incomingData.pullData());
@@ -454,7 +456,7 @@ public class OBEXClient {
      * @return the translated response
      * @throws IOException if an IO error occurs
      */
-    private GetResponse[] getAll(GetRequest request) throws IOException {
+    private GetResponse[] getAll(GetRequest request) throws IOException, SerialPortException {
         logger.log(Level.FINER, "Get operation to perform.");
         ArrayList<GetResponse> arrayList = new ArrayList<GetResponse>();
 
@@ -474,9 +476,9 @@ public class OBEXClient {
      * @param pkt The packet to be sent.
      * @throws IOException if an IO error occurs
      */
-    private synchronized void sendPacket(final Packet pkt) throws IOException {
+    private synchronized void sendPacket(final Packet pkt) throws IOException, SerialPortException {
         logger.log(Level.FINEST, "Sending {0}", Utility.dumpBytes(pkt.toBytes()));
-        os.write(pkt.toBytes());
+        conn.writeAll(pkt.toBytes());
     }
 
     /**
@@ -485,7 +487,7 @@ public class OBEXClient {
      * @param timeout the timeout case the server does not answer.
      * @throws IOException
      */
-    private void sendPacketAndWait(final Packet pkt, final int timeout) throws IOException {
+    private void sendPacketAndWait(final Packet pkt, final int timeout) throws IOException, SerialPortException {
         synchronized (holder) {
             sendPacket(pkt);
             try {
@@ -502,7 +504,7 @@ public class OBEXClient {
      * @param folderName
      * @return true if operation was successful
      */
-    private boolean setFolder(String folderName, final boolean create) throws IOException {
+    private boolean setFolder(String folderName, final boolean create) throws IOException, SerialPortException {
         if ("..".equals(folderName)) {
             folderName = null;
         }
@@ -552,8 +554,12 @@ public class OBEXClient {
             if (mode != ATConnection.MODE_DATA && !changed) {
                 try {
                     logger.log(Level.WARNING, "Datamode to close unexpectedly");
-//                    abort();
-                    disconnect();
+                    try {
+                        //                    abort();
+                        disconnect();
+                    } catch (SerialPortException ex) {
+                        Logger.getLogger(OBEXClient.class.getName()).log(Level.SEVERE, null, ex);
+                    }
                 } catch (IOException ex) {
                     Logger.getLogger(OBEXClient.class.getName()).log(Level.SEVERE, null, ex);
                 }

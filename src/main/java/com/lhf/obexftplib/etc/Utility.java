@@ -22,8 +22,6 @@ import com.lhf.obexftplib.fs.OBEXFolder;
 import com.lhf.obexftplib.io.obexop.GetResponse;
 import com.lhf.obexftplib.io.obexop.Header;
 import com.lhf.obexftplib.io.obexop.Response;
-import gnu.io.CommPortIdentifier;
-import gnu.io.NoSuchPortException;
 import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.text.DateFormat;
@@ -85,17 +83,17 @@ public final class Utility {
         return buf.toString().trim();
     }
 
-    /**
-     *  This is a hack to ports like /dev/ttyACM0 work in RxTx.
-     * @param connPortPath the port path to add;
-     * @since 1.0
-     */
-    public static CommPortIdentifier addPortToRxTx(final String connPortPath) throws NoSuchPortException {
-        if (connPortPath.indexOf("ttyS") < 0 && connPortPath.indexOf("COM") < 0 && connPortPath.indexOf("tty.") < 0) {
-            System.setProperty("gnu.io.rxtx.SerialPorts", connPortPath);
-        }
-        return CommPortIdentifier.getPortIdentifier(connPortPath);
-    }
+//    /**
+//     *  This is a hack to ports like /dev/ttyACM0 work in RxTx.
+//     * @param connPortPath the port path to add;
+//     * @since 1.0
+//     */
+//    public static CommPortIdentifier addPortToRxTx(final String connPortPath) throws NoSuchPortException {
+//        if (connPortPath.indexOf("ttyS") < 0 && connPortPath.indexOf("COM") < 0 && connPortPath.indexOf("tty.") < 0) {
+//            System.setProperty("gnu.io.rxtx.SerialPorts", connPortPath);
+//        }
+//        return CommPortIdentifier.getPortIdentifier(connPortPath);
+//    }
 
     /**
      * Checks for the combination looking from end to begining, in the whole array
@@ -197,7 +195,9 @@ public final class Utility {
      */
     public static int bytesToInt(final byte[] bytes) {
         int result = 0;
-
+        if (bytes == null ) {
+            return 0;
+        }
         for (int i = 0; i < bytes.length; i++) {
             int temp = (int) bytes[i];
             if (temp < 0) {
