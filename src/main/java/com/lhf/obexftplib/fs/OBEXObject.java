@@ -1,20 +1,20 @@
 /**
  * Last updated in 21/Out/2010
  *
- *    This file is part of JObexFTP.
+ * This file is part of JObexFTP.
  *
- *    JObexFTP is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU Lesser General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ * JObexFTP is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option) any
+ * later version.
  *
- *    JObexFTP is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License for more details.
+ * JObexFTP is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * details.
  *
- *    You should have received a copy of the GNU Lesser General Public License
- *    along with JObexFTP.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with JObexFTP. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 package com.lhf.obexftplib.fs;
@@ -30,7 +30,9 @@ import java.util.Date;
 import java.util.Iterator;
 
 /**
- * Abstract class containing common attributes and behavior of OBEXFile and OBEXFolder.
+ * Abstract class containing common attributes and behavior of OBEXFile and
+ * OBEXFolder.
+ *
  * @author Ricardo Guilherme Schmidt <ricardo@lhf.ind.br>
  */
 public abstract class OBEXObject {
@@ -62,8 +64,10 @@ public abstract class OBEXObject {
     }
 
     public void addResponse(final Response res) {
-        for (Iterator<Header> it = res.getHeaders(); it.hasNext();) {
-            threatHeader(it.next());
+        if (res != null) {
+            for (Iterator<Header> it = res.getHeaders(); it.hasNext();) {
+                threatHeader(it.next());
+            }
         }
     }
 
@@ -156,7 +160,9 @@ public abstract class OBEXObject {
     }
 
     /**
-     * TODO: Find the correct groupperm byte (its not 0x38) and add it at OBEXFile#getHeaderSet().
+     * TODO: Find the correct groupperm byte (its not 0x38) and add it at
+     * OBEXFile#getHeaderSet().
+     *
      * @param groupPerm the groupPerm to set
      */
     public void setGroupPerm(final boolean read, final boolean write, final boolean delete) {
@@ -188,6 +194,7 @@ public abstract class OBEXObject {
 
     /**
      * Resets and sets the content of this object.
+     *
      * @param contents
      * @throws IOException
      */
@@ -221,6 +228,7 @@ public abstract class OBEXObject {
 
     /**
      * The time to set in yyyyMMdd'T'HHmmss time representated String
+     *
      * @param value
      */
     public void setTime(final String value) {

@@ -1,19 +1,19 @@
 /**
- *    Created on Oct 21, 2010
- *    This file is part of JObexFTP 2.0, and it contains parts of OBEX4J.
+ * Created on Oct 21, 2010 This file is part of JObexFTP 2.0, and it contains
+ * parts of OBEX4J.
  *
- *    JObexFTP is free software: you can redistribute it and/or modify
- *    it under the terms of the GNU Lesser General Public License as published by
- *    the Free Software Foundation, either version 3 of the License, or
- *    (at your option) any later version.
+ * JObexFTP is free software: you can redistribute it and/or modify it under the
+ * terms of the GNU Lesser General Public License as published by the Free
+ * Software Foundation, either version 3 of the License, or (at your option) any
+ * later version.
  *
- *    JObexFTP is distributed in the hope that it will be useful,
- *    but WITHOUT ANY WARRANTY; without even the implied warranty of
- *    MERCHANTABILITY or FITNESS FOR A PARTICULAR PURPOSE.  See the
- *    GNU Lesser General Public License for more details.
+ * JObexFTP is distributed in the hope that it will be useful, but WITHOUT ANY
+ * WARRANTY; without even the implied warranty of MERCHANTABILITY or FITNESS FOR
+ * A PARTICULAR PURPOSE. See the GNU Lesser General Public License for more
+ * details.
  *
- *    You should have received a copy of the GNU Lesser General Public License
- *    along with JObexFTP.  If not, see <http://www.gnu.org/licenses/>.
+ * You should have received a copy of the GNU Lesser General Public License
+ * along with JObexFTP. If not, see <http://www.gnu.org/licenses/>.
  *
  */
 package com.lhf.obexftplib.etc;
@@ -94,9 +94,10 @@ public final class Utility {
 //        }
 //        return CommPortIdentifier.getPortIdentifier(connPortPath);
 //    }
-
     /**
-     * Checks for the combination looking from end to begining, in the whole array
+     * Checks for the combination looking from end to begining, in the whole
+     * array
+     *
      * @param b
      * @return true if found, false otherwise
      */
@@ -195,7 +196,7 @@ public final class Utility {
      */
     public static int bytesToInt(final byte[] bytes) {
         int result = 0;
-        if (bytes == null ) {
+        if (bytes == null) {
             return 0;
         }
         for (int i = 0; i < bytes.length; i++) {
@@ -284,8 +285,8 @@ public final class Utility {
      * convert the list of ByteArray to a single byte array
      *
      * @param list List whose elements are instances of ByteArray class
-     * @return single byte array result in the concatenation of all the
-     * elements of the given list
+     * @return single byte array result in the concatenation of all the elements
+     * of the given list
      */
     static byte[] byteArrayListToBytes(final ArrayList list) {
         if (list == null) {
@@ -397,6 +398,7 @@ public final class Utility {
 
     /**
      * Builds a byte array for names in obex format
+     *
      * @param name
      * @return
      * @see Utility#bytesToName(byte[])
@@ -439,7 +441,9 @@ public final class Utility {
     }
 
     /**
-     * Replaces all slashes '\' for backslashes '/', removes the last backslash and remove the drive letter 'a:'
+     * Replaces all slashes '\' for backslashes '/', removes the last backslash
+     * and remove the drive letter 'a:'
+     *
      * @param path the path to be prepared
      * @return the prepared path
      * @see Utility#removeLastSlash(java.lang.String)
@@ -454,6 +458,7 @@ public final class Utility {
 
     /**
      * Removes the last slash ('/') from any string.
+     *
      * @param path
      * @return
      */
@@ -466,6 +471,7 @@ public final class Utility {
 
     /**
      * Compares the two absolute pathes and build an realtive path to get in the
+     *
      * @param absolutePath The absolute path to some file or folder
      * @param actualFolder The absolute path of the origin folder
      * @return The realtive path from actualFolder to absolutePath
@@ -495,6 +501,7 @@ public final class Utility {
 
     /**
      * gets the last folder form a path.
+     *
      * @param path an absolute or relative path
      * @return the last folder
      */
@@ -506,6 +513,7 @@ public final class Utility {
 
     /**
      * gets the last folder form a path.
+     *
      * @param path an absolute or relative path
      * @return the last folder
      */
@@ -519,8 +527,10 @@ public final class Utility {
     }
 
     /**
-     * This function is used when the Path is known, but there is no OBEXFolder referenciating it.
-     * So it makes easier to user OBEXFolder to movein or create folders.
+     * This function is used when the Path is known, but there is no OBEXFolder
+     * referenciating it. So it makes easier to user OBEXFolder to movein or
+     * create folders.
+     *
      * @param absolutePath an absolutpath, starting with a:/ or /
      * @return the last level OBEXFolder of the path specified.
      */
@@ -539,14 +549,17 @@ public final class Utility {
     }
     /**
      * DateFormat for getTime
+     *
      * @see Utility#getTime(java.util.Date)
      */
     private static final DateFormat OBEX_DATE_FORMAT = new SimpleDateFormat("yyyyMMdd'T'HHmmss");
 
     /**
      * Builds a string in the SimpleDateFormat of yyyyMMdd'T'HHmmss
+     *
      * @param time the time
-     * @return String representation of the SimpleDateFormat of yyyyMMdd'T'HHmmss in the specified time
+     * @return String representation of the SimpleDateFormat of
+     * yyyyMMdd'T'HHmmss in the specified time
      */
     public static String getTime(final Date time) {
         return OBEX_DATE_FORMAT.format(time);
@@ -554,33 +567,37 @@ public final class Utility {
 
     /**
      * Helper to check response values
+     *
      * @param res
-     * @return true if is Response.CONTINUE Response.SUCCESS Response.CREATED, false otherwise
+     * @return true if is Response.CONTINUE Response.SUCCESS Response.CREATED,
+     * false otherwise
      */
     public static boolean threatResponse(final Response res) {
         boolean b = false;
-        switch (res.getType() & 0x7F) {
-            case Response.CONTINUE:
-                b = true;
-                break;
-            case Response.SUCCESS:
-                b = true;
-                break;
-            case Response.BADREQUEST:
-                b = false;
-                break;
-            case Response.CREATED:
-                b = true;
-                break;
-            default:
-                b = false;
+        if (res != null) {
+            switch (res.getType() & 0x7F) {
+                case Response.CONTINUE:
+                    b = true;
+                    break;
+                case Response.SUCCESS:
+                    b = true;
+                    break;
+                case Response.BADREQUEST:
+                    b = false;
+                    break;
+                case Response.CREATED:
+                    b = true;
+                    break;
+                default:
+                    b = false;
+            }
         }
-
         return b;
     }
 
     /**
      * Creates byte array to set user, group and others permissions.
+     *
      * @param read if read granted
      * @param write if write granted
      * @param delete if delete granted
@@ -611,6 +628,7 @@ public final class Utility {
 
     /**
      * Builds the name from bytes used by OBEX
+     *
      * @param name the name in obex format
      * @return the name in human readable
      * @see Utility#nameToBytes(java.lang.String)
@@ -627,6 +645,7 @@ public final class Utility {
 
     /**
      * Creates byte array to set user, group and others permissions.
+     *
      * @param userPerm the string containing the permited operations.
      * @param type the type to user, group or others.
      * @return the array
@@ -696,7 +715,9 @@ public final class Utility {
     }
 
     /**
-     * Gets a long representation of a yyyyMMdd'T'HHmmss time representated String
+     * Gets a long representation of a yyyyMMdd'T'HHmmss time representated
+     * String
+     *
      * @param value
      * @return
      * @see Utility#getTime(java.util.Date)

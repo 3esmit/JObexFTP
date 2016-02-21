@@ -386,10 +386,10 @@ public class OBEXClient {
                 res = put(req);
                 req = new PutRequest();
 
-            } while ((res.getType() & 0x7F) == Response.CONTINUE);
+            } while (res != null && (res.getType() & 0x7F) == Response.CONTINUE);
             is.close();
             file.setInputStream(null);
-            return (res.getType() & 0x7F) == Response.SUCCESS;
+            return res != null && (res.getType() & 0x7F) == Response.SUCCESS;
         }
     }
 
@@ -464,7 +464,7 @@ public class OBEXClient {
         do {
             arrayList.add(response = get(request));
             request = new GetRequest();
-        } while ((response.getType() & 0x7F) == Response.CONTINUE);
+        } while (response!=null && (response.getType() & 0x7F) == Response.CONTINUE);
 
         GetResponse[] responses = new GetResponse[arrayList.size()];
         responses = arrayList.toArray(responses);
@@ -553,7 +553,7 @@ public class OBEXClient {
         public void update(final int mode, final boolean changed) {
             if (mode != ATConnection.MODE_DATA && !changed) {
                 try {
-                    logger.log(Level.WARNING, "Datamode to close unexpectedly");
+                    logger.log(Level.WARNING, "Datamode to close unexpectedly mode was:"+ mode + " change was "+changed);
                     try {
                         //                    abort();
                         disconnect();
