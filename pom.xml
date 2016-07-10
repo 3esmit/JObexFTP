@@ -1,0 +1,74 @@
+
+<project xmlns="http://maven.apache.org/POM/4.0.0" xmlns:xsi="http://www.w3.org/2001/XMLSchema-instance"
+  xsi:schemaLocation="http://maven.apache.org/POM/4.0.0 http://maven.apache.org/maven-v4_0_0.xsd">
+    <modelVersion>4.0.0</modelVersion>
+    <groupId>com.lhf.obexftp</groupId>
+    <artifactId>JObexFtp</artifactId>
+    <packaging>jar</packaging>
+    <version>2.5-SNAPSHOT</version>
+    <name>JObexFtp</name>
+    <url>http://maven.apache.org</url>
+    <build>
+	<plugins>
+	    <plugin>
+		<groupId>org.apache.maven.plugins</groupId>
+		<artifactId>maven-compiler-plugin</artifactId>
+		<version>2.0.2</version>
+		<configuration>
+		    <source>1.6</source>
+		    <target>1.6</target>
+		</configuration>
+	    </plugin>
+	    <plugin>
+		<groupId>org.apache.maven.plugins</groupId>
+		<artifactId>maven-jar-plugin</artifactId>
+		<configuration>
+		    <archive>
+			<manifest>
+			    <mainClass>com.lhf.jobexftp.StandAloneApp</mainClass>
+			    <addClasspath>true</addClasspath>
+			    <classpathPrefix>lib/</classpathPrefix>
+			</manifest>
+		    </archive>
+		    <excludes>
+			<exclude>doc/**/*</exclude>
+			<exclude>librxtx/**/*</exclude>
+			<exclude>bin/**/*</exclude>
+			<exclude>MANIFEST.MF</exclude>
+			<exclude>LICENSE</exclude>
+			<exclude>README</exclude>
+			<exclude>CHANGELOG</exclude>
+		    </excludes>
+
+		</configuration>
+	    </plugin>
+
+	</plugins>
+	<pluginManagement>
+	    <plugins>
+		<plugin>
+		    <artifactId>maven-assembly-plugin</artifactId>
+		    <configuration>
+			<descriptors>
+			    <descriptor>src/main/assembly/jobexftp-dist.xml</descriptor>
+			</descriptors>
+		    </configuration>
+		</plugin>
+	    </plugins>
+	</pluginManagement>
+
+    </build>
+    <dependencies>
+	<dependency>
+	    <groupId>junit</groupId>
+	    <artifactId>junit</artifactId>
+	    <version>4.11</version>
+	    <scope>test</scope>
+	</dependency>
+        <dependency>
+            <groupId>org.scream3r</groupId>
+            <artifactId>jssc</artifactId>
+            <version>2.8.0</version>
+        </dependency>
+    </dependencies>
+</project>
